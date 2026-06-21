@@ -19,16 +19,16 @@ jobs:
         host: ${{ secrets.SERVER_IP }}
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SERVER_SSH_KEY }}
+        port: 3939 
         script: |
           cd /var/www/bahonarkaraj.ir/html
           
-          # ۲. اگر پوشه گیت وجود نداشت، پروژه را کلون کن، در غیر این صورت آپدیتش کن
           if [ ! -d ".git" ]; then
+            # اگر سرور پورتش غیر از ۲۲ است، باید برای کلون کردن گیت‌هاب هم تنظیم شود
             git clone https://github.com/aminmadaniofficial/zerolms.git .
           else
             git fetch --all
             git reset --hard origin/main
           fi
           
-          # ۳. اجرای داکر و بیلد کردن تغییرات جدید پی‌اچ‌پی
           docker compose up -d --build
