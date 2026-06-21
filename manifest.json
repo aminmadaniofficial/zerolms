@@ -1,0 +1,15 @@
+{
+  "name": "وبسایت باهنر 3",
+  "short_name": "با هنر 3",
+  "description": "سیستم مدیریت یادگیری مدرسه با هنر 3 ، برنامه نویسی شده توسط محمدامین مدنی محمدی",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1e3c72",
+  "theme_color": "#2a5298",
+  "icons": [
+    {
+      "src": "/images/logo.svg",
+      "type": "image/png"
+    }
+  ]
+}

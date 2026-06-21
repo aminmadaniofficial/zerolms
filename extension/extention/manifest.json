@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "هوشیار - Hooshyar",
+  "version": "2.5",
+  "description": "هر اتفاقی تو سایت مدرسه بیفته، فوراً خبرت می‌کنه! | برنامه‌نویسی شده توسط محمدامین مدنی محمدی",
+  "icons": {
+    "128": "icon.png"
+  },
+  "permissions": [
+    "storage",
+    "alarms",
+    "notifications"
+  ],
+  "host_permissions": [
+    "https://bahonarkaraj.ir/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "هوشیار باش !"
+  }
+}

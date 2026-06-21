@@ -1,0 +1,14 @@
+{
+    "require": {
+        "phpoffice/phpspreadsheet": "^2.0",
+        "guzzlehttp/guzzle": "^7.10",
+        "kambo/huggingface-php": "^0.1.0",
+        "botman/botman": "^2.8",
+        "tecnickcom/tcpdf": "*"
+    },
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
+    }
+}

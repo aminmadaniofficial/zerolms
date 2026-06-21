@@ -1,0 +1,29 @@
+services:
+  web:
+    build: .
+    platform: linux/amd64
+    container_name: php_app_container
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      - db
+
+  db:
+    image: mysql:8.0
+    platform: linux/amd64
+    container_name: mysql_db_container
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: "134679852Mm"
+      MYSQL_DATABASE: "school_online"
+      MYSQL_USER: "zerolms"
+      MYSQL_PASSWORD: "1597538264Mm"
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:
