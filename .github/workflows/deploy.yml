@@ -1,0 +1,34 @@
+name: Deploy ZeroLMS to Bahonar Karaj Server
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Executing remote SSH commands to deploy
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SERVER_IP }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        script: |
+          cd /var/www/bahonarkaraj.ir/html
+          
+          # ۲. اگر پوشه گیت وجود نداشت، پروژه را کلون کن، در غیر این صورت آپدیتش کن
+          if [ ! -d ".git" ]; then
+            git clone https://github.com/aminmadaniofficial/zerolms.git .
+          else
+            git fetch --all
+            git reset --hard origin/main
+          fi
+          
+          # ۳. اجرای داکر و بیلد کردن تغییرات جدید پی‌اچ‌پی
+          docker compose up -d --build
