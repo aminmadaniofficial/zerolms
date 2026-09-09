@@ -54,6 +54,11 @@ if (file_exists('jdf.php')) {
     require_once 'jdf.php';
 }
 
+// Include Lightweight Inline SVG Icon library
+if (file_exists('icons.php')) {
+    require_once 'icons.php';
+}
+
 /**
  * Convert a Gregorian date string to Jalali (Shamsi) date format.
  * 
@@ -320,9 +325,8 @@ $t = $i18n[$lang];
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
-    <!-- Preload Critical Font Assets -->
-    <link rel="preload" href="webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="preload" href="webfonts/fa-regular-400.woff2" as="font" type="font/woff2" crossorigin>
+    <!-- Preload LCP Hero Image for Instant Mobile & Desktop Rendering -->
+    <link rel="preload" as="image" href="./images/slide1.webp" imagesrcset="./images/slide1-mobile.webp 768w, ./images/slide1.webp 1200w" imagesizes="100vw" fetchpriority="high">
 
     <meta name="robots" content="index, follow, max-image-preview:large">
     <link rel="canonical" href="https://bahonarkaraj.ir">
@@ -343,7 +347,7 @@ $t = $i18n[$lang];
       "name": "<?php echo e($t['seo']['title']); ?>",
       "description": "<?php echo e($t['seo']['desc']); ?>",
       "url": "https://bahonarkaraj.ir",
-      "logo": "https://bahonarkaraj.ir/images/logo.png",
+      "logo": "https://bahonarkaraj.ir/images/logo.webp",
       "address": {
         "@type": "PostalAddress",
         "streetAddress": "Motahari Blvd, Savoji St",
@@ -360,102 +364,21 @@ $t = $i18n[$lang];
     }
     </script>
 
-    <!-- External Fonts & Third-Party Library Stylesheets -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Vazirmatn:wght@400;500;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/all.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
-
-    <!-- Tailwind CSS v4 Browser Build -->
-    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
-    <style type="text/tailwindcss">
-        @theme {
-            --color-brand-blue: #1e3a8a;      
-            --color-brand-blue-light: #2563eb;
-            --color-brand-accent: #d97706;   
-            --color-brand-accent-hover: #b45309;
-            --color-surface-bg: #f8fafc;      
-        }
-
-        body {
-            background-color: var(--color-surface-bg);
-            color: #334155;
-            overflow-x: hidden;
-        }
-
-        .card-standard {
-            background-color: #ffffff;
-            border-radius: 16px;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .card-standard:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
-
-        .btn-primary {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background-color: var(--color-brand-blue-light);
-            color: white;
-            font-weight: 600;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            transition: all 0.2s;
-        }
-        .btn-primary:hover {
-            background-color: var(--color-brand-blue);
-            box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3);
-        }
-
-        .top-bar { background-color: var(--color-brand-blue); color: #f1f5f9; font-size: 0.875rem; }
-        .main-nav {
-            background-color: #ffffff;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            transition: all 0.3s;
-        }
-        .main-nav.scrolled { padding-top: 0.5rem; padding-bottom: 0.5rem; }
-
-        .mobile-menu-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 90;
-            opacity: 0; visibility: hidden; transition: 0.3s;
-        }
-        .mobile-menu-overlay.active { opacity: 1; visibility: visible; }
-        .mobile-menu-content {
-            position: fixed; top: 0; bottom: 0; width: 280px; background: white; z-index: 100;
-            box-shadow: -5px 0 15px rgba(0,0,0,0.1); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .dir-rtl .mobile-menu-content { right: -280px; }
-        .dir-rtl .mobile-menu-content.active { right: 0; }
-        .dir-ltr .mobile-menu-content { left: -280px; }
-        .dir-ltr .mobile-menu-content.active { left: 0; }
-
-        .hero-swiper { width: 100%; height: 80vh; min-height: 500px; max-height: 800px; }
-        .hero-slide-bg { position: absolute; inset: 0; z-index: 1; background-color: #0f172a; }
-        .hero-slide-bg img { width: 100%; height: 100%; object-fit: cover; opacity: 0.8; }
-        .hero-overlay {
-            position: absolute; inset: 0; z-index: 2;
-            background: linear-gradient(to right, rgba(15,23,42,0.95) 0%, rgba(15,23,42,0.6) 50%, rgba(15,23,42,0.1) 100%);
-        }
-        .dir-ltr .hero-overlay {
-            background: linear-gradient(to left, rgba(15,23,42,0.95) 0%, rgba(15,23,42,0.6) 50%, rgba(15,23,42,0.1) 100%);
-        }
-        .hero-content { position: relative; z-index: 3; height: 100%; display: flex; align-items: center; }
-        
-        .swiper-button-next, .swiper-button-prev { color: white !important; opacity: 0.7; transition: 0.3s; }
-        .swiper-button-next:hover, .swiper-button-prev:hover { opacity: 1; transform: scale(1.1); }
-        .swiper-pagination-bullet { background: white !important; opacity: 0.4; width: 12px; height: 4px; border-radius: 2px; transition: 0.3s; }
-        .swiper-pagination-bullet-active { opacity: 1 !important; width: 30px; background: var(--color-brand-accent) !important; }
-
-        .section-title-wrapper { margin-bottom: 3rem; text-align: center; }
-        .section-subtitle { color: var(--color-brand-blue-light); font-weight: 700; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.5rem; }
-        .section-title { font-size: 2rem; font-weight: 800; color: #0f172a; }
-        @media(min-width: 768px){ .section-title { font-size: 2.5rem; } }
+    <!-- Core Precompiled Tailwind + Custom Stylesheet (Inlined for 0ms Render-Blocking) -->
+    <style>
+    <?php include __DIR__ . '/css/landing.min.css'; ?>
     </style>
+
+    <!-- Non-critical External Fonts & Third-Party Library Stylesheets (Loaded Asynchronously) -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Vazirmatn:wght@400;500;700;800;900&display=swap" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="css/swiper-bundle.min.css" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="css/aos.css" media="print" onload="this.media='all'">
+    <noscript>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Vazirmatn:wght@400;500;700;800;900&display=swap">
+        <link rel="stylesheet" href="css/swiper-bundle.min.css">
+        <link rel="stylesheet" href="css/aos.css">
+    </noscript>
+
 </head>
 
 <body
@@ -467,14 +390,14 @@ $t = $i18n[$lang];
             <div class="flex items-center gap-6">
                 <a href="tel:<?php echo e($t['topbar']['phone']); ?>"
                     class="hover:text-blue-300 transition-colors flex items-center gap-2" dir="ltr">
-                    <i class="fa-solid fa-phone"></i> <?php echo e($t['topbar']['phone']); ?>
+                    <?php echo icon('phone', 'w-4 h-4 text-blue-300 inline-block'); ?> <?php echo e($t['topbar']['phone']); ?>
                 </a>
                 <a href="mailto:<?php echo e($t['topbar']['email']); ?>"
                     class="hover:text-blue-300 transition-colors flex items-center gap-2">
-                    <i class="fa-solid fa-envelope"></i> <?php echo e($t['topbar']['email']); ?>
+                    <?php echo icon('envelope', 'w-4 h-4 text-blue-300 inline-block'); ?> <?php echo e($t['topbar']['email']); ?>
                 </a>
                 <span class="flex items-center gap-2">
-                    <i class="fa-solid fa-clock"></i> <?php echo e($t['topbar']['hours']); ?>
+                    <?php echo icon('clock', 'w-4 h-4 text-blue-300 inline-block'); ?> <?php echo e($t['topbar']['hours']); ?>
                 </span>
             </div>
 
@@ -482,8 +405,8 @@ $t = $i18n[$lang];
             <div class="flex items-center gap-3">
                 <a href="?lang=<?php echo $lang === 'fa' ? 'en' : 'fa'; ?>"
                     onclick="sessionStorage.setItem('scroll', window.scrollY);"
-                    class="bg-white/10 hover:bg-white/20 px-3 py-1 rounded text-xs font-bold transition-colors">
-                    <i class="fa-solid fa-globe me-1"></i> <?php echo $lang === 'fa' ? 'English' : 'فارسی'; ?>
+                    class="bg-white/10 hover:bg-white/20 px-3 py-1 rounded text-xs font-bold transition-colors inline-flex items-center">
+                    <?php echo icon('globe', 'w-3.5 h-3.5 me-1 inline-block'); ?> <?php echo $lang === 'fa' ? 'English' : 'فارسی'; ?>
                 </a>
             </div>
         </div>
@@ -494,8 +417,8 @@ $t = $i18n[$lang];
         <div class="container mx-auto px-4 max-w-7xl flex justify-between items-center">
             <!-- School Brand / Logo -->
             <a href="index.php" class="flex items-center gap-3">
-                <img src="./images/logo.png" alt="Logo" class="h-12 w-auto" width="48" height="48"
-                    onerror="this.src='https://placehold.co/100x100/1e3a8a/ffffff?text=B3'">
+                <img src="./images/logo.webp" alt="Logo" class="h-12 w-12 shrink-0 object-contain" width="48" height="48"
+                    onerror="this.src='./images/logo.png'">
                 <div class="flex flex-col">
                     <span class="font-bold text-xl text-slate-800 leading-tight">
                         <?php echo $lang === 'fa' ? 'باهنـر ۳' : 'BAHONAR 3'; ?>
@@ -519,7 +442,7 @@ $t = $i18n[$lang];
             <div class="flex items-center gap-3">
                 <?php if (isset($_SESSION['user_id'])): ?>
                     <a href="dashboard" class="hidden sm:flex btn-primary">
-                        <i class="fa-regular fa-user-circle me-2"></i> <?php echo e($t['nav']['portal']); ?>
+                        <?php echo icon('user-circle', 'w-5 h-5 me-2 inline-block'); ?> <?php echo e($t['nav']['portal']); ?>
                     </a>
                 <?php else: ?>
                     <a href="login" class="hidden sm:flex btn-primary">
@@ -527,8 +450,8 @@ $t = $i18n[$lang];
                     </a>
                 <?php endif; ?>
 
-                <button id="mobileMenuBtn" aria-label="منوی اصلی" class="lg:hidden w-10 h-10 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center text-lg hover:bg-slate-200 transition-colors">
-                    <i class="fa-solid fa-bars"></i>
+                <button id="mobileMenuBtn" aria-label="منوی اصلی" class="lg:hidden w-10 h-10 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200 transition-colors">
+                    <?php echo icon('bars', 'w-5 h-5'); ?>
                 </button>
             </div>
         </div>
@@ -540,21 +463,21 @@ $t = $i18n[$lang];
         <div class="flex justify-between items-center border-b border-slate-100 pb-4 mb-6">
             <span class="font-bold text-lg text-slate-800">منوی دسترسی</span>
             <button id="closeMobileMenu" aria-label="بستن منو" class="w-8 h-8 rounded bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-red-100 hover:text-red-600 transition-colors">
-                <i class="fa-solid fa-xmark"></i>
+                <?php echo icon('xmark', 'w-5 h-5'); ?>
             </button>
         </div>
         <nav class="flex flex-col gap-4 font-medium text-slate-700">
-            <a href="index.php" class="hover:text-blue-600 transition-colors"><i class="fa-solid fa-house w-6 text-slate-400"></i> <?php echo e($t['nav']['home']); ?></a>
-            <a href="#about" class="hover:text-blue-600 transition-colors"><i class="fa-solid fa-circle-info w-6 text-slate-400"></i> <?php echo e($t['nav']['about']); ?></a>
-            <a href="#teachers" class="hover:text-blue-600 transition-colors"><i class="fa-solid fa-users w-6 text-slate-400"></i> <?php echo e($t['nav']['teachers']); ?></a>
-            <a href="#blog" class="hover:text-blue-600 transition-colors"><i class="fa-solid fa-newspaper w-6 text-slate-400"></i> <?php echo e($t['nav']['blog']); ?></a>
-            <a href="#contact" class="hover:text-blue-600 transition-colors"><i class="fa-solid fa-phone w-6 text-slate-400"></i> <?php echo e($t['nav']['contact']); ?></a>
+            <a href="index.php" class="hover:text-blue-600 transition-colors flex items-center gap-2"><?php echo icon('house', 'w-5 h-5 text-slate-400'); ?> <?php echo e($t['nav']['home']); ?></a>
+            <a href="#about" class="hover:text-blue-600 transition-colors flex items-center gap-2"><?php echo icon('circle-info', 'w-5 h-5 text-slate-400'); ?> <?php echo e($t['nav']['about']); ?></a>
+            <a href="#teachers" class="hover:text-blue-600 transition-colors flex items-center gap-2"><?php echo icon('users', 'w-5 h-5 text-slate-400'); ?> <?php echo e($t['nav']['teachers']); ?></a>
+            <a href="#blog" class="hover:text-blue-600 transition-colors flex items-center gap-2"><?php echo icon('newspaper', 'w-5 h-5 text-slate-400'); ?> <?php echo e($t['nav']['blog']); ?></a>
+            <a href="#contact" class="hover:text-blue-600 transition-colors flex items-center gap-2"><?php echo icon('phone', 'w-5 h-5 text-slate-400'); ?> <?php echo e($t['nav']['contact']); ?></a>
         </nav>
         <div class="mt-auto pt-6 border-t border-slate-100">
             <a href="login" class="flex justify-center btn-primary w-full"><?php echo e($t['nav']['login']); ?></a>
             <div class="flex justify-center mt-4">
-                <a href="?lang=<?php echo $lang === 'fa' ? 'en' : 'fa'; ?>" class="text-sm font-bold text-slate-500 hover:text-blue-600">
-                    <i class="fa-solid fa-globe me-1"></i>
+                <a href="?lang=<?php echo $lang === 'fa' ? 'en' : 'fa'; ?>" class="text-sm font-bold text-slate-500 hover:text-blue-600 inline-flex items-center">
+                    <?php echo icon('globe', 'w-4 h-4 me-1 inline-block'); ?>
                     <?php echo $lang === 'fa' ? 'Switch to English' : 'تغییر به فارسی'; ?>
                 </a>
             </div>
@@ -571,10 +494,14 @@ $t = $i18n[$lang];
                             <div class="hero-slide-bg">
                                 <img 
                                     src="./images/<?php echo ($i <= 3) ? 'slide'.$i : 'part'.($i-3); ?>.webp" 
+                                    <?php if ($i === 1): ?>
+                                    srcset="./images/slide1-mobile.webp 768w, ./images/slide1.webp 1200w"
+                                    sizes="100vw"
+                                    <?php endif; ?>
                                     alt="School Section <?php echo $i; ?>"
                                     width="1200" height="600"
                                     loading="<?php echo ($i === 1) ? 'eager' : 'lazy'; ?>"
-                                    <?php echo ($i === 1) ? 'fetchpriority="high"' : ''; ?>
+                                    <?php echo ($i === 1) ? 'fetchpriority="high"' : 'decoding="async"'; ?>
                                     style="width:100%; height:100%; object-fit:cover;"
                                 >
                             </div>
@@ -645,7 +572,7 @@ $t = $i18n[$lang];
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div class="card-standard p-8 text-center" data-aos="fade-up" data-aos-delay="100">
                         <div class="w-16 h-16 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-3xl mx-auto mb-6">
-                            <i class="fa-solid fa-chalkboard-user"></i>
+                            <?php echo icon('chalkboard-user', 'w-8 h-8'); ?>
                         </div>
                         <h3 class="text-xl font-bold text-slate-800 mb-3"><?php echo e($t['features']['f1_title']); ?></h3>
                         <p class="text-slate-600 text-sm leading-relaxed"><?php echo e($t['features']['f1_desc']); ?></p>
@@ -653,7 +580,7 @@ $t = $i18n[$lang];
 
                     <div class="card-standard p-8 text-center" data-aos="fade-up" data-aos-delay="200">
                         <div class="w-16 h-16 rounded-full bg-amber-50 text-amber-700 flex items-center justify-center text-3xl mx-auto mb-6">
-                            <i class="fa-solid fa-flask"></i>
+                            <?php echo icon('flask', 'w-8 h-8'); ?>
                         </div>
                         <h3 class="text-xl font-bold text-slate-800 mb-3"><?php echo e($t['features']['f2_title']); ?></h3>
                         <p class="text-slate-600 text-sm leading-relaxed"><?php echo e($t['features']['f2_desc']); ?></p>
@@ -661,7 +588,7 @@ $t = $i18n[$lang];
 
                     <div class="card-standard p-8 text-center" data-aos="fade-up" data-aos-delay="300">
                         <div class="w-16 h-16 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-3xl mx-auto mb-6">
-                            <i class="fa-solid fa-microchip"></i>
+                            <?php echo icon('microchip', 'w-8 h-8'); ?>
                         </div>
                         <h3 class="text-xl font-bold text-slate-800 mb-3"><?php echo e($t['features']['f3_title']); ?></h3>
                         <p class="text-slate-600 text-sm leading-relaxed"><?php echo e($t['features']['f3_desc']); ?></p>
@@ -669,7 +596,7 @@ $t = $i18n[$lang];
 
                     <div class="card-standard p-8 text-center" data-aos="fade-up" data-aos-delay="400">
                         <div class="w-16 h-16 rounded-full bg-amber-50 text-amber-700 flex items-center justify-center text-3xl mx-auto mb-6">
-                            <i class="fa-solid fa-user-tie"></i>
+                            <?php echo icon('user-tie', 'w-8 h-8'); ?>
                         </div>
                         <h3 class="text-xl font-bold text-slate-800 mb-3"><?php echo e($t['features']['f4_title']); ?></h3>
                         <p class="text-slate-600 text-sm leading-relaxed"><?php echo e($t['features']['f4_desc']); ?></p>
@@ -733,7 +660,7 @@ $t = $i18n[$lang];
                 <div class="text-center mt-12">
                     <a href="teachers/index.php" class="btn-primary">
                         <?php echo e($t['faculty']['view_all']); ?>
-                        <i class="fa-solid fa-arrow-<?php echo $lang === 'fa' ? 'left' : 'right'; ?> ms-2"></i>
+                        <?php echo icon($lang === 'fa' ? 'arrow-left' : 'arrow-right', 'w-4 h-4 ms-2 inline-block'); ?>
                     </a>
                 </div>
             </div>
@@ -753,18 +680,25 @@ $t = $i18n[$lang];
                             <article class="card-standard flex flex-col overflow-hidden" data-aos="fade-up" data-aos-delay="<?php echo $index * 100; ?>">
                                 <a href="blog/post/index.php?id=<?php echo (int) $post['id']; ?>" aria-label="<?php echo e($post['title']); ?>" class="block w-full aspect-video bg-slate-200 relative overflow-hidden group">
                                     <?php
-                                    $img = !empty($post['image_path']) ? "./" . $post['image_path'] : "https://placehold.co/800x450/1e3a8a/ffffff?text=Bahonar+3";
+                                    $img_path = !empty($post['image_path']) ? $post['image_path'] : '';
+                                    if ($img_path && file_exists(__DIR__ . '/' . $img_path)) {
+                                        $img = "./" . $img_path;
+                                    } elseif ($img_path && file_exists(__DIR__ . '/' . preg_replace('/\.(jpg|png)$/i', '.webp', $img_path))) {
+                                        $img = "./" . preg_replace('/\.(jpg|png)$/i', '.webp', $img_path);
+                                    } else {
+                                        $img = "./images/posts/default.webp";
+                                    }
                                     ?>
-                                    <img src="<?php echo e($img); ?>" alt="<?php echo e($post['title']); ?>" width="400" height="225" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://placehold.co/800x450/1e3a8a/ffffff?text=Bahonar+3'">
+                                    <img src="<?php echo e($img); ?>" alt="<?php echo e($post['title']); ?>" width="400" height="225" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='./images/posts/default.webp'">
                                     
-                                    <time datetime="<?php echo e($post['created_at']); ?>" class="absolute top-4 <?php echo $lang === 'fa' ? 'right-4' : 'left-4'; ?> bg-white px-3 py-1 rounded shadow-sm text-xs font-bold text-blue-600">
-                                        <i class="fa-regular fa-calendar me-1"></i>
+                                    <time datetime="<?php echo e($post['created_at']); ?>" class="absolute top-4 <?php echo $lang === 'fa' ? 'right-4' : 'left-4'; ?> bg-white px-3 py-1 rounded shadow-sm text-xs font-bold text-blue-600 inline-flex items-center">
+                                        <?php echo icon('calendar', 'w-3.5 h-3.5 me-1 inline-block'); ?>
                                         <?php echo $lang === 'fa' ? toJalali($post['created_at']) : date('M d, Y', strtotime($post['created_at'])); ?>
                                     </time>
                                 </a>
                                 <div class="p-6 flex flex-col flex-grow">
                                     <div class="text-xs text-slate-500 mb-3 flex items-center gap-2">
-                                        <i class="fa-solid fa-user-pen"></i> <?php echo e($post['author_name']); ?>
+                                        <?php echo icon('user-pen', 'w-3.5 h-3.5 inline-block'); ?> <?php echo e($post['author_name']); ?>
                                     </div>
                                     <h3 class="text-xl font-bold text-slate-800 mb-4 line-clamp-2 hover:text-blue-600 transition-colors">
                                         <a href="blog/post/index.php?id=<?php echo (int) $post['id']; ?>"><?php echo e($post['title']); ?></a>
@@ -772,7 +706,7 @@ $t = $i18n[$lang];
                                     <div class="mt-auto">
                                         <a href="blog/post/index.php?id=<?php echo (int) $post['id']; ?>" aria-label="ادامه مطلب خبر <?php echo e($post['title']); ?>" class="text-blue-600 font-bold text-sm inline-flex items-center gap-2 hover:text-blue-800 transition-colors group">
                                             <?php echo e($t['blog']['read']); ?>
-                                            <i class="fa-solid fa-arrow-<?php echo $lang === 'fa' ? 'left' : 'right'; ?> group-hover:translate-x-<?php echo $lang === 'fa' ? '-4px' : '4px'; ?> transition-transform"></i>
+                                            <?php echo icon($lang === 'fa' ? 'arrow-left' : 'arrow-right', 'w-4 h-4 transition-transform group-hover:translate-x-' . ($lang === 'fa' ? '-4px' : '4px')); ?>
                                         </a>
                                     </div>
                                 </div>
@@ -788,7 +722,7 @@ $t = $i18n[$lang];
                 <div class="text-center mt-12" data-aos="fade-up">
                     <a href="blog/index.php" class="btn-primary">
                         <?php echo $lang === 'fa' ? 'نمایش همه اخبار' : 'View All News'; ?>
-                        <i class="fa-solid fa-arrow-<?php echo $lang === 'fa' ? 'left' : 'right'; ?> ms-2"></i>
+                        <?php echo icon($lang === 'fa' ? 'arrow-left' : 'arrow-right', 'w-4 h-4 ms-2 inline-block'); ?>
                     </a>
                 </div>
             </div>
@@ -808,7 +742,7 @@ $t = $i18n[$lang];
                         <div class="space-y-6">
                             <div class="flex items-start gap-4">
                                 <div class="w-12 h-12 rounded-lg bg-white shadow-sm flex items-center justify-center text-blue-600 text-xl shrink-0">
-                                    <i class="fa-solid fa-location-dot"></i>
+                                    <?php echo icon('location-dot', 'w-6 h-6'); ?>
                                 </div>
                                 <div>
                                     <h3 class="font-bold text-slate-800 text-sm mb-1"><?php echo e($t['contact']['address_lbl']); ?></h3>
@@ -818,7 +752,7 @@ $t = $i18n[$lang];
 
                             <div class="flex items-start gap-4">
                                 <div class="w-12 h-12 rounded-lg bg-white shadow-sm flex items-center justify-center text-blue-600 text-xl shrink-0">
-                                    <i class="fa-solid fa-phone"></i>
+                                    <?php echo icon('phone', 'w-6 h-6'); ?>
                                 </div>
                                 <div>
                                     <h3 class="font-bold text-slate-800 text-sm mb-1"><?php echo e($t['contact']['phone_lbl']); ?></h3>
@@ -828,7 +762,7 @@ $t = $i18n[$lang];
 
                             <div class="flex items-start gap-4">
                                 <div class="w-12 h-12 rounded-lg bg-white shadow-sm flex items-center justify-center text-blue-600 text-xl shrink-0">
-                                    <i class="fa-solid fa-envelope"></i>
+                                    <?php echo icon('envelope', 'w-6 h-6'); ?>
                                 </div>
                                 <div>
                                     <h3 class="font-bold text-slate-800 text-sm mb-1"><?php echo e($t['contact']['email_lbl']); ?></h3>
@@ -857,7 +791,7 @@ $t = $i18n[$lang];
             <div class="grid grid-cols-1 md:grid-cols-12 gap-12 mb-12">
                 <div class="md:col-span-5">
                     <div class="flex items-center gap-3 mb-6">
-                        <img src="./images/logo.png" alt="Logo" class="h-10 w-auto" width="40" height="40">
+                        <img src="./images/logo.webp" alt="Logo" class="h-10 w-10 shrink-0 object-contain" width="40" height="40" loading="lazy" decoding="async" onerror="this.src='./images/logo.png'">
                         <span class="font-bold text-xl text-white">
                             <?php echo $lang === 'fa' ? 'باهنر ۳' : 'BAHONAR 3'; ?>
                         </span>
@@ -881,11 +815,11 @@ $t = $i18n[$lang];
                     <h3 class="text-white font-bold mb-6 text-base"><?php echo e($t['nav']['contact']); ?></h3>
                     <ul class="space-y-4">
                         <li class="flex items-center gap-3 text-sm">
-                            <i class="fa-solid fa-phone text-blue-500"></i>
+                            <?php echo icon('phone', 'w-4 h-4 text-blue-500 inline-block'); ?>
                             <span dir="ltr"><?php echo e($t['topbar']['phone']); ?></span>
                         </li>
                         <li class="flex items-center gap-3 text-sm">
-                            <i class="fa-solid fa-envelope text-blue-500"></i>
+                            <?php echo icon('envelope', 'w-4 h-4 text-blue-500 inline-block'); ?>
                             <span dir="ltr"><?php echo e($t['topbar']['email']); ?></span>
                         </li>
                     </ul>
@@ -901,9 +835,9 @@ $t = $i18n[$lang];
         </div>
     </footer>
 
-    <!-- JavaScript Libraries -->
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <!-- JavaScript Libraries (Loaded Locally with Defer) -->
+    <script src="js/aos.js" defer></script>
+    <script src="js/swiper-bundle.min.js" defer></script>
 
     <!-- Client-side Logic Script -->
     <script>
@@ -915,26 +849,49 @@ $t = $i18n[$lang];
             }
         });
 
-        // Initialize Animate On Scroll (AOS) plugin with slight delay
-        setTimeout(() => {
-            AOS.init({
-                once: true,
-                offset: 50,
-                duration: 600,
-                easing: 'ease-out-cubic',
-            });
-        }, 300);
+        function initLibraries() {
+            // Initialize Animate On Scroll (AOS) plugin
+            if (typeof AOS !== 'undefined') {
+                AOS.init({
+                    once: true,
+                    offset: 50,
+                    duration: 600,
+                    easing: 'ease-out-cubic',
+                });
+            }
 
-        // Configure full-screen Hero Swiper slider instance
-        var heroSwiper = new Swiper(".hero-swiper", {
-            loop: true,
-            speed: 1000,
-            autoplay: { delay: 5000, disableOnInteraction: false },
-            effect: 'fade',
-            fadeEffect: { crossFade: true },
-            pagination: { el: ".swiper-pagination", clickable: true },
-            navigation: { nextEl: ".swiper-button-next", prevEl: ".swiper-button-prev" }
-        });
+            // Configure full-screen Hero Swiper slider instance
+            if (typeof Swiper !== 'undefined') {
+                new Swiper(".hero-swiper", {
+                    loop: true,
+                    speed: 1000,
+                    autoplay: { delay: 5000, disableOnInteraction: false },
+                    effect: 'fade',
+                    fadeEffect: { crossFade: true },
+                    pagination: { el: ".swiper-pagination", clickable: true },
+                    navigation: { nextEl: ".swiper-button-next", prevEl: ".swiper-button-prev" }
+                });
+
+                // Configure responsive Teachers Swiper carousel
+                new Swiper(".teachers-swiper", {
+                    slidesPerView: 1, 
+                    spaceBetween: 20,
+                    loop: true,
+                    autoplay: { delay: 3000, disableOnInteraction: false },
+                    navigation: { nextEl: ".swiper-button-next", prevEl: ".swiper-button-prev" },
+                    breakpoints: {
+                        640: { slidesPerView: 2 },
+                        1024: { slidesPerView: 4 },
+                    },
+                });
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initLibraries);
+        } else {
+            initLibraries();
+        }
 
         // Dynamic header styling adaptation on user scroll
         const header = document.getElementById('header');
@@ -944,7 +901,7 @@ $t = $i18n[$lang];
             } else {
                 header.classList.remove('scrolled');
             }
-        });
+        }, { passive: true });
 
         // Toggle mobile navigation drawer overlay
         const mobileBtn = document.getElementById('mobileMenuBtn');
@@ -958,26 +915,13 @@ $t = $i18n[$lang];
             document.body.style.overflow = mobileMenu.classList.contains('active') ? 'hidden' : '';
         }
 
-        mobileBtn.addEventListener('click', toggleMenu);
-        closeBtn.addEventListener('click', toggleMenu);
-        mobileOverlay.addEventListener('click', toggleMenu);
+        if (mobileBtn) mobileBtn.addEventListener('click', toggleMenu);
+        if (closeBtn) closeBtn.addEventListener('click', toggleMenu);
+        if (mobileOverlay) mobileOverlay.addEventListener('click', toggleMenu);
 
         // Auto-close mobile drawer when any link is clicked
         document.querySelectorAll('.mobile-menu-content nav a').forEach(link => {
             link.addEventListener('click', toggleMenu);
-        });
-
-        // Configure responsive Teachers Swiper carousel
-        var teachersSwiper = new Swiper(".teachers-swiper", {
-            slidesPerView: 1, 
-            spaceBetween: 20,
-            loop: true,
-            autoplay: { delay: 3000, disableOnInteraction: false },
-            navigation: { nextEl: ".swiper-button-next", prevEl: ".swiper-button-prev" },
-            breakpoints: {
-                640: { slidesPerView: 2 },
-                1024: { slidesPerView: 4 },
-            },
         });
 
         // Smart Intersection Observer for delayed Google Maps iframe loading
