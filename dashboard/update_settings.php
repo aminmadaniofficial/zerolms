@@ -1,16 +1,33 @@
 <?php
+/**
+ *     _____                    __   __  ___ _____
+ *    /__  /  ___  _________   / /  /  |/  // ___/
+ *      / /  / _ \/ ___/ __ \ / /  / /|_/ / \__ \ 
+ *     / /__/  __/ /  / /_/ // /__/ /  / / ___/ / 
+ *    /____/\___/_/   \____//____/_/  /_/ /____/  
+ * 
+ * ------------------------------------------------------------
+ *  System      : Zero LMS Core Engine
+ *  Author      : Amin Madani
+ *  Created     : 2026
+ *  Notice      : Unauthorized copying or modification of this file,
+ *                via any medium is strictly prohibited.
+ * ------------------------------------------------------------
+ */
+
 session_start();
 require_once '../db.php';
 
 header('Content-Type: application/json');
 ob_clean();
 
+// Check user session
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'error' => 'عدم دسترسی']);
     exit();
 }
 
-
+// Check CSRF token match
 if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
     echo json_encode(['success' => false, 'error' => 'توکن امنیتی نامعتبر']);
     exit();
@@ -24,7 +41,7 @@ $username_password = $_POST['username_password'] ?? '';
 $new_name = $_POST['new_name'] ?? '';
 $user_id = $_SESSION['user_id'];
 
-
+// Query target user profile data
 $stmt = $pdo->prepare("SELECT username, password, name FROM users WHERE id = :user_id");
 $stmt->execute(['user_id' => $user_id]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -38,7 +55,7 @@ $updates = [];
 $messages = [];
 
 try {
-    
+    // Process password update workflow
     if (!empty($new_password) || !empty($confirm_password)) {
         if (empty($current_password)) {
             echo json_encode(['success' => false, 'error' => 'رمز عبور فعلی الزامی است']);
@@ -60,7 +77,7 @@ try {
         $messages[] = 'رمز عبور با موفقیت تغییر کرد';
     }
 
-    
+    // Process username update workflow
     if (!empty($new_username)) {
         if (empty($username_password)) {
             echo json_encode(['success' => false, 'error' => 'رمز عبور فعلی برای تغییر نام کاربری الزامی است']);
@@ -86,7 +103,7 @@ try {
         $messages[] = 'نام کاربری با موفقیت تغییر کرد';
     }
 
-    
+    // Process display name update workflow
     if (!empty($new_name)) {
         if ($new_name === $user['name']) {
             echo json_encode(['success' => false, 'error' => 'نام جدید با فعلی یکسان است']);
@@ -96,13 +113,12 @@ try {
         $messages[] = 'نام با موفقیت تغییر کرد';
     }
 
-    
     if (empty($updates)) {
         echo json_encode(['success' => false, 'error' => 'هیچ تغییری اعمال نشد']);
         exit();
     }
 
-    
+    // Execute dynamic update SQL query
     $query = "UPDATE users SET ";
     $params = [];
     $set = [];

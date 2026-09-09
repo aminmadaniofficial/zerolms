@@ -1,20 +1,44 @@
 <?php
+/**
+ *     _____                    __   __  ___ _____
+ *    /__  /  ___  _________   / /  /  |/  // ___/
+ *      / /  / _ \/ ___/ __ \ / /  / /|_/ / \__ \ 
+ *     / /__/  __/ /  / /_/ // /__/ /  / / ___/ / 
+ *    /____/\___/_/   \____//____/_/  /_/ /____/  
+ * 
+ * ------------------------------------------------------------
+ *  System      : Zero LMS Core Engine
+ *  Author      : Amin Madani
+ *  Created     : 2026
+ *  Notice      : Unauthorized copying or modification of this file,
+ *                via any medium is strictly prohibited.
+ * ------------------------------------------------------------
+ */
+
 session_start();
 require_once '../../db.php';
 require_once '../../jdf.php';
 date_default_timezone_set('Asia/Tehran');
 
+// Verify admin access
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    header("Location: ../../login.php");
+    header("Location: ../../login/");
     exit;
 }
+
+/**
+ * Convert timestamp to Jalali date format.
+ * 
+ * @param string $date
+ * @return string
+ */
 function to_jalali($date) {
     if (!$date) return '-';
     $timestamp = strtotime($date);
     return jdate('Y/m/d', $timestamp);
 }
 
-
+// Query latest 100 hardware device log entries
 $stmt = $pdo->prepare("SELECT message, created_at FROM atlogs ORDER BY created_at DESC LIMIT 100");
 $stmt->execute();
 $atlogs = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -32,8 +56,7 @@ $atlogs = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <style>
         @font-face {
             font-family: 'font-iran-normal';
-            src: url('../../css/font-iran-normal.woff2') format('woff2'),
-                 url('../../css/font-iran-normal.ttf') format('truetype');
+            src: url('../../fonts/IRANSansWeb_Medium.woff') format('woff');
             font-weight: normal;
             font-style: normal;
         }

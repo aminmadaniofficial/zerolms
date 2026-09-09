@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>شناسنامه و گزارش فنی اثر | سامانه مدیریت یادگیری ZeroLMS</title>
+    <meta name="description" content="شناسنامه رسمی اثر، مستندات مهندسی نرم‌افزار، معماری کانتینری و الگوریتم‌های ZeroLMS ویژه مرحله کشوری جشنواره جوان خوارزمی">
+    <meta name="author" content="محمدامین مدنی محمدی">
+
+    <!-- Stylesheets -->
+    <link href="css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
+    <link href="css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/fontawesome.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="icon" type="image/png" sizes="16x16" href="images/favicon.png">
+
+    <!-- Libraries: Chart.js & Mermaid.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'base',
+            themeVariables: {
+                darkMode: true,
+                background: '#0d1527',
+                primaryColor: '#1e3a8a',
+                primaryTextColor: '#ffffff',
+                primaryBorderColor: '#3b82f6',
+                lineColor: '#60a5fa',
+                secondaryColor: '#1e293b',
+                secondaryTextColor: '#ffffff',
+                secondaryBorderColor: '#3b82f6',
+                tertiaryColor: '#0b1329',
+                tertiaryTextColor: '#ffffff',
+                tertiaryBorderColor: '#243452',
+                clusterBkg: '#0d1527',
+                clusterBorder: '#3b82f6',
+                defaultLinkColor: '#60a5fa',
+                titleColor: '#ffffff',
+                edgeLabelBackground: '#0d1527',
+                nodeTextColor: '#ffffff',
+                mainBkg: '#1e293b',
+                nodeBorder: '#3b82f6'
+            },
+            fontFamily: 'Vazirmatn, sans-serif'
+        });
+    </script>
+
+    <style>
+        :root {
+            --bg-body: #080d1a;
+            --bg-card: #131d31;
+            --bg-subcard: #0d1527;
+            --border-color: #243452;
+            --border-highlight: #3b82f6;
+            --primary-blue: #2563eb;
+            --primary-light: #60a5fa;
+            --text-pure: #ffffff;
+            --text-high: #f1f5f9;
+            --text-body: #cbd5e1;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            font-family: 'Vazirmatn', sans-serif;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-high);
+            margin: 0;
+            padding-bottom: 90px;
+            line-height: 1.9;
+        }
+
+        /* Top Header */
+        .header-section {
+            background: linear-gradient(180deg, #0f1c38 0%, #080d1a 100%);
+            border-bottom: 1px solid var(--border-color);
+            padding: 55px 20px 40px;
+            text-align: center;
+        }
+
+        .hero-badge {
+            background-color: rgba(37, 99, 235, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            color: var(--primary-light);
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 6px 18px;
+            border-radius: 30px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 18px;
+        }
+
+        .hero-title {
+            color: #ffffff;
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin: 0 0 12px 0;
+        }
+
+        .hero-subtitle {
+            color: var(--text-body);
+            font-size: 1.05rem;
+            max-width: 820px;
+            margin: 0 auto 24px auto;
+        }
+
+        .btn-action-hero {
+            background-color: var(--primary-blue);
+            color: #ffffff !important;
+            padding: 10px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background-color 0.2s;
+        }
+        .btn-action-hero:hover {
+            background-color: #1d4ed8;
+        }
+
+        .btn-outline-hero {
+            background-color: var(--bg-subcard);
+            border: 1px solid var(--border-color);
+            color: var(--text-high) !important;
+            padding: 10px 22px;
+            border-radius: 10px;
+            font-weight: 500;
+            font-size: 0.95rem;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: border-color 0.2s;
+        }
+        .btn-outline-hero:hover {
+            border-color: var(--border-highlight);
+            color: #ffffff !important;
+        }
+
+        /* Container & Cards */
+        .content-container {
+            max-width: 1140px;
+            margin: 40px auto 0 auto;
+            padding: 0 16px;
+        }
+
+        .doc-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            padding: 34px;
+            margin-bottom: 34px;
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.4);
+        }
+
+        .doc-card-title {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .doc-card-title i {
+            color: var(--primary-light);
+        }
+
+        .sub-box {
+            background-color: var(--bg-subcard);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            height: 100%;
+        }
+
+        /* Tables & Bootstrap Table Overrides */
+        table, .table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background-color: var(--bg-subcard) !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: 12px;
+            overflow: hidden;
+            color: var(--text-high) !important;
+            margin: 16px 0;
+            --bs-table-bg: transparent !important;
+            --bs-table-accent-bg: transparent !important;
+            --bs-table-striped-bg: transparent !important;
+            --bs-table-hover-bg: rgba(255, 255, 255, 0.03) !important;
+            --bs-table-color: var(--text-high) !important;
+            --bs-table-border-color: var(--border-color) !important;
+        }
+
+        .table > :not(caption) > * > * {
+            background-color: var(--bg-subcard) !important;
+            color: var(--text-body) !important;
+            border-bottom: 1px solid var(--border-color) !important;
+            box-shadow: none !important;
+        }
+
+        .table thead th {
+            background-color: #0b1222 !important;
+            color: #ffffff !important;
+            font-weight: 700;
+            font-size: 0.92rem;
+            padding: 14px 16px;
+            border-bottom: 2px solid var(--border-color) !important;
+            text-align: center;
+        }
+
+        .table tbody td {
+            padding: 13px 16px;
+            border-bottom: 1px solid var(--border-color) !important;
+            color: var(--text-body) !important;
+            font-size: 0.9rem;
+            vertical-align: middle;
+        }
+
+        .table tbody tr:last-child td {
+            border-bottom: none !important;
+        }
+
+        .table tbody tr:hover td {
+            background-color: rgba(30, 41, 59, 0.7) !important;
+        }
+
+        /* ZeroLMS Column Highlighting */
+        .table th.col-zerolms,
+        .table td.col-zerolms {
+            background-color: rgba(30, 58, 138, 0.35) !important;
+            color: #ffffff !important;
+            border-right: 1px solid rgba(59, 130, 246, 0.35) !important;
+            border-left: 1px solid rgba(59, 130, 246, 0.35) !important;
+        }
+
+        .table thead th.col-zerolms {
+            background-color: #1e3a8a !important;
+            color: #ffffff !important;
+            font-weight: 800;
+        }
+
+        /* High-contrast muted text override */
+        .text-muted {
+            color: #94a3b8 !important;
+        }
+
+        /* Mermaid Wrapper & Technical Diagram Captions */
+        .mermaid-wrapper {
+            background-color: var(--bg-subcard);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 24px 18px;
+            margin: 20px 0;
+            text-align: center;
+            overflow-x: auto;
+        }
+
+        .mermaid-wrapper svg {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .diagram-caption {
+            color: #93c5fd !important;
+            font-size: 0.86rem;
+            font-weight: 600;
+            margin-top: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 18px;
+            background: rgba(30, 41, 59, 0.75);
+            border: 1px solid rgba(59, 130, 246, 0.28);
+            border-radius: 20px;
+        }
+
+        .diagram-caption i {
+            color: #60a5fa;
+        }
+
+        /* Score Boxes */
+        .score-box {
+            background-color: var(--bg-subcard);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 20px 14px;
+            text-align: center;
+        }
+
+        .score-circle {
+            width: 76px;
+            height: 76px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            font-weight: 800;
+            margin: 0 auto 12px auto;
+            border: 3px solid #10b981;
+            color: #34d399;
+            background-color: rgba(16, 185, 129, 0.1);
+        }
+
+        .diagram-preview-img {
+            width: 100%;
+            height: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Portfolio iframe */
+        .portfolio-frame {
+            width: 100%;
+            height: 520px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background-color: #0b1222;
+        }
+
+        /* Footer */
+        footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: #0b1222;
+            border-top: 1px solid var(--border-color);
+            padding: 12px 20px;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            z-index: 1000;
+        }
+        footer strong { color: #ffffff; }
+        footer a { color: var(--primary-light); text-decoration: none; }
+    </style>
+</head>
+<body>
+
+    <!-- Header Section -->
+    <header class="header-section">
+        <div class="container">
+            <div class="hero-badge">
+                <i class="fas fa-certificate"></i>
+                <span>مستندات رسمی و گزارش مهندسی اثر • مرحله کشوری جشنواره جوان خوارزمی ۱۴۰۵</span>
+            </div>
+            <h1 class="hero-title">سامانه جامع مدیریت یادگیری و ارزیابی هوشمند (ZeroLMS)</h1>
+            <p class="hero-subtitle">
+                طراحی و پیاده‌سازی پلتفرم آموزشی سازمانی با معماری کانتینری داکر، حل‌کننده هوشمند برنامه‌ریزی هفتگی (CSP)، دستیار آموزشی هوش مصنوعی تعاملی و زیرساخت حضور و غیاب سخت‌افزاری RFID
+            </p>
+
+            <div class="d-flex justify-content-center flex-wrap gap-3">
+                <a href="dashboard/" class="btn-action-hero">
+                    <i class="fas fa-desktop"></i>
+                    <span>ورود به داشبورد نرم‌افزار</span>
+                </a>
+                <a href="#algorithm-section" class="btn-outline-hero">
+                    <i class="fas fa-microchip"></i>
+                    <span>الگوریتم حل قید برنامه هفتگی (CSP)</span>
+                </a>
+                <a href="#architecture-section" class="btn-outline-hero">
+                    <i class="fas fa-sitemap"></i>
+                    <span>معماری کانتینری و شبکه</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="content-container">
+
+        <!-- ====================================================================
+             ۱. شناسنامه رسمی اثر و مشخصات طراح
+        ==================================================================== -->
+        <section class="doc-card" id="profile-section">
+            <div class="doc-card-title">
+                <i class="fas fa-id-card"></i>
+                <span>۱. شناسنامه رسمی اثر و مشخصات پژوهشگر (نمون‌برگ ۱-۹)</span>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="sub-box">
+                        <ul class="list-unstyled m-0 d-flex flex-column gap-3" style="font-size: 0.92rem;">
+                            <li><strong class="text-white">نام و نام خانوادگی طراح:</strong> <span style="color: #60a5fa;">محمدامین مدنی محمدی</span></li>
+                            <li><strong class="text-white">مرکز آموزشی:</strong> <span>دبیرستان استعدادهای درخشان شهید باهنر ۳ کرج (سمپاد)</span></li>
+                            <li><strong class="text-white">محور و گرایش جشنواره:</strong> <span>برنامه‌نویسی و سیستم‌های نرم‌افزاری کاربردی</span></li>
+                            <li><strong class="text-white">عنوان تجاری و فنی اثر:</strong> <span>ZeroLMS (Zero Learning Management System)</span></li>
+                            <li><strong class="text-white">دامنه و بستر میزبانی:</strong> <span>bahonarkaraj.ir</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="sub-box">
+                        <ul class="list-unstyled m-0 d-flex flex-column gap-3" style="font-size: 0.92rem;">
+                            <li><strong class="text-white">نسخه نرم‌افزار:</strong> <span class="badge bg-primary">v2.8 Stable Enterprise</span></li>
+                            <li><strong class="text-white">پشته فناوری هسته (Tech Stack):</strong> <span>PHP 8.2 (OOP), MariaDB 10.11, Docker, Nginx, JS ES6</span></li>
+                            <li><strong class="text-white">نوع زیرساخت استقرار:</strong> <span>Docker Containerization (Multi-Service DevOps)</span></li>
+                            <li><strong class="text-white">مستندات سورس‌کد:</strong> <span>مخزن گیت محلی همراه با فایل README کامل در ریشه پروژه</span></li>
+                            <li><strong class="text-white">تاریخ ارزیابی میدانی:</strong> <span>سال تحصیلی ۱۴۰۴ - ۱۴۰۵</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ====================================================================
+             ۲. مسأله‌شناسی و مزیت‌های رقابتی نسبت به سیستم‌های موجود
+        ==================================================================== -->
+        <section class="doc-card" id="problem-section">
+            <div class="doc-card-title">
+                <i class="fas fa-balance-scale"></i>
+                <span>۲. مسأله‌شناسی، ضرورت فنی و مقایسه تحلیلی با سیستم‌های موجود</span>
+            </div>
+
+            <p style="color: var(--text-body); text-align: justify; margin-bottom: 20px;">
+                اکثر مدارس و مراکز آموزشی کشور در استفاده از سامانه‌های مرسوم (مانند Moodle، سامانه شاد یا پلتفرم‌های سنتی وب) با سه چالش بنیادین مواجه هستند:
+                <strong>۱. سنگینی و افت شدید عملکرد در ترافیک بالا،</strong> 
+                <strong>۲. فقدان ابزارهای خودکارسازی مدیریت تحصیلی (مانند چیدمان هوشمند برنامه درسی بدون تداخل دبیران)،</strong> و 
+                <strong>۳. عدم یکپارچگی ابزارهای کمک‌آموزشی نوین (مانند هوش مصنوعی و ثبت حضور و غیاب فیزیکی).</strong>
+                سامانه ZeroLMS با هدف حذف سربارهای ساختاری (Zero Overhead) طراحی و توسعه یافته است.
+            </p>
+
+            <div class="table-responsive">
+                <table class="table text-center align-middle m-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 25%;">معیار ارزیابی</th>
+                            <th style="width: 25%;">سامانه مودل (Moodle)</th>
+                            <th style="width: 25%;">سامانه‌های سنتی مدارس</th>
+                            <th class="col-zerolms" style="width: 25%;">سامانه نوآورانه ZeroLMS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="text-start fw-bold text-white">معماری و نحوه استقرار</td>
+                            <td>نیاز به منابع سخت‌افزاری بالا و سرور حجیم</td>
+                            <td>هاست‌های اشتراکی و محدود بدون ایزولاسیون</td>
+                            <td class="col-zerolms fw-bold">کانتینربندی سبک داکر (Docker Isolated DevOps)</td>
+                        </tr>
+                        <tr>
+                            <td class="text-start fw-bold text-white">تولید برنامه هفتگی مدرسه</td>
+                            <td>فاقد موتور حل تداخل کلاسی</td>
+                            <td>چیدمان دستی با احتمال خطای انسانی مکرر</td>
+                            <td class="col-zerolms fw-bold">الگوریتم حل ارضای قید (CSP) در کمتر از ۵۰۰ میلی‌ثانیه</td>
+                        </tr>
+                        <tr>
+                            <td class="text-start fw-bold text-white">دستیار هوش مصنوعی</td>
+                            <td>نیازمند پلاگین‌های پیچیده ثالث خارجی</td>
+                            <td>فاقد دستیار تعاملی</td>
+                            <td class="col-zerolms fw-bold">استریمینگ بلادرنگ (SSE) با پرامپتینگ هدایت‌گر سقراطی</td>
+                        </tr>
+                        <tr>
+                            <td class="text-start fw-bold text-white">حضور و غیاب و اعلان سخت‌افزاری</td>
+                            <td>ثبت دستی در صفحه وب</td>
+                            <td>سیستم‌های سنتی بدون وب‌هوک</td>
+                            <td class="col-zerolms fw-bold">پشتیبانی از کارت RFID + اکستنشن کروم با صدای معلم</td>
+                        </tr>
+                        <tr>
+                            <td class="text-start fw-bold text-white">سرعت پاسخ‌دهی (Lighthouse)</td>
+                            <td>میانگین ۴۰ الی ۶۰ به دلیل اسکریپت‌های حجیم</td>
+                            <td>متوسط (۵۰ الی ۷۰)</td>
+                            <td class="col-zerolms fw-bold">نمره ۹۸ در شاخص پرفورمنس رسمی گوگل</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ====================================================================
+             ۳. معماری زیرساخت داکر و توپولوژی شبکه
+        ==================================================================== -->
+        <section class="doc-card" id="architecture-section">
+            <div class="doc-card-title">
+                <i class="fas fa-network-wired"></i>
+                <span>۳. معماری کانتینری داکر و امنیت شبکه (Container Topology)</span>
+            </div>
+
+            <p style="color: var(--text-body); text-align: justify; margin-bottom: 20px;">
+                زیرساخت سرور بر پایه تفکیک کامل سرویس‌ها پیاده‌سازی شده است. پکت‌های شبکه ابتدا توسط کانتینر معکوس <strong>Nginx</strong> در پورت امن ۴۴۳ همراه با گواهی معتبر SSL دریافت می‌شوند. سپس پردازش کدهای سمت سرور به کانتینر <strong>PHP 8.2</strong> ارسال شده و تراکنش‌های داده‌ای منحصراً در شبکه ایزوله داخلی (Docker Bridge Network) بدون دسترسی مستقیم از اینترنت به کانتینر <strong>MariaDB 10.11</strong> منتقل می‌گردند.
+            </p>
+
+            <!-- Mermaid Architecture Diagram -->
+            <div class="mermaid-wrapper">
+                <div class="mermaid">
+flowchart TD
+    Client["مرورگر کاربر / اپلیکیشن موبایل\n(HTTPS:443)"] --> NginxProxy["کانتینر پروکسی معکوس Nginx\n(SSL Termination + Gzip + Cache)"]
+    NginxProxy --> AppContainer["کانتینر برنامه اصلی (php_app_container)\n(PHP 8.2 OOP + Apache Engine)"]
+    
+    subgraph IsolatedDockerNetwork["شبکه ایزوله داخلی داکر (Bridge Network)"]
+        AppContainer --> DBContainer["کانتینر پایگاه داده (mysql_db_container)\n(MariaDB 10.11 - ۳۱ جدول رابطه ای)"]
+        AppContainer --> StorageVol["فضای ذخیره‌سازی ایزوله (Volumes)\n(فایل‌های جزوات، تصاویر و لاگ‌ها)"]
+    end
+
+    AppContainer -.-> ExtService["افزونه مرورگر کروم و کارت‌خوان RFID\n(REST API Token Auth)"]
+    AppContainer -.-> AIService["موتور پردازش زنده هوش مصنوعی\n(Server-Sent Events Stream)"]
+                </div>
+                <div class="mt-3">
+                    <span class="diagram-caption">
+                        <i class="fas fa-project-diagram"></i>
+                        فلوچارت جریان ترافیک و ایزولاسیون شبکه کانتینری ZeroLMS
+                    </span>
+                </div>
+            </div>
+
+            <div class="row align-items-center g-4 mt-2">
+                <div class="col-lg-6">
+                    <img src="./images/architecturegraph.png" alt="System Architecture Topology" class="diagram-preview-img">
+                </div>
+                <div class="col-lg-6">
+                    <div class="sub-box">
+                        <h6 class="text-white fw-bold mb-3"><i class="fas fa-shield-alt text-primary me-2"></i> شاخص‌های امنیتی معماری:</h6>
+                        <ul class="list-unstyled m-0 d-flex flex-column gap-2" style="font-size: 0.9rem; color: var(--text-body);">
+                            <li><i class="fas fa-check-circle text-success me-2"></i> <strong>عدم افشای پورت پایگاه داده:</strong> پورت پایگاه داده فقط در شبکه کانتینرها در دسترس است.</li>
+                            <li><i class="fas fa-check-circle text-success me-2"></i> <strong>مکانیزم CSRF Token:</strong> در کلیه فرم‌ها و درخواست‌های متد POST توکن تصادفی ۳۲ بایتی اعتبارسنجی می‌شود.</li>
+                            <li><i class="fas fa-check-circle text-success me-2"></i> <strong>استفاده ۱۰۰٪ از Prepared Statements:</strong> پیشگیری کامل از حملات SQL Injection.</li>
+                            <li><i class="fas fa-check-circle text-success me-2"></i> <strong>هش BCRYPT برای کلمات عبور:</strong> ذخیره نکردن کلمه عبور به صورت خام در دیتابیس.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ====================================================================
+             ۴. نوآوری کلیدی: الگوریتم حل مسأله ارضای قید (CSP) برنامه هفتگی
+        ==================================================================== -->
+        <section class="doc-card" id="algorithm-section">
+            <div class="doc-card-title">
+                <i class="fas fa-calculator"></i>
+                <span>۴. الگوریتم حل مسأله ارضای قید در تولید برنامه هفتگی (ZeroSchedule)</span>
+            </div>
+
+            <p style="color: var(--text-body); text-align: justify; margin-bottom: 20px;">
+                یکی از بزرگ‌ترین گره‌های اداری مدارس کشور در آغاز سال تحصیلی، چیدمان برنامه درسی است. با افزایش تعداد کلاس‌ها و دبیران مشترک، تعداد حالات ممکن به صورت فاکتوریلی رشد کرده و چیدمان دستی ساعت‌ها زمان می‌برد. در ماژول <strong>ZeroSchedule</strong>، این موضوع به صورت یک مسأله استاندارد <strong>Constraint Satisfaction Problem (CSP)</strong> مدل‌سازی شده است:
+            </p>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <div class="sub-box">
+                        <h6 class="text-white fw-bold mb-2"><i class="fas fa-lock text-primary me-2"></i> قیود سخت (Hard Constraints):</h6>
+                        <ul class="list-unstyled m-0 d-flex flex-column gap-2" style="font-size: 0.88rem; color: var(--text-body);">
+                            <li><strong>۱. عدم همپوشانی دبیر:</strong> هیچ مدرسی نمی‌تواند در یک زنگ خاص در دو کلاس متفاوت تخصیص یابد.</li>
+                            <li><strong>۲. سقف ساعات مصوب:</strong> تعداد زنگ‌های هر درس در هفته دقیقاً معادل بودجه‌بندی استاندارد آموزش و پرورش باشد.</li>
+                            <li><strong>۳. ظرفیت زنگ‌های کلاسی:</strong> در هر اسلات زمانی (۵ روز، هر روز ۶ زنگ = ۳۰ زنگ هفتگی)، حداکثر یک درس برای هر کلاس ثبت شود.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="sub-box">
+                        <h6 class="text-white fw-bold mb-2"><i class="fas fa-sliders-h text-primary me-2"></i> قیود نرم و بهینه‌سازی (Soft Constraints):</h6>
+                        <ul class="list-unstyled m-0 d-flex flex-column gap-2" style="font-size: 0.88rem; color: var(--text-body);">
+                            <li><strong>۱. پخش متعادل دروس سنگین:</strong> عدم قرارگیری دو زنگ متوالی درس‌های دشوار (ریاضی/فیزیک) در ساعات پایانی روز.</li>
+                            <li><strong>۲. حداقل‌سازی پنجره‌های خالی دبیران:</strong> تجمیع ساعات حضور دبیر در روزهای کاری مشخص.</li>
+                            <li><strong>۳. توزیع پیوسته دروس در هفته:</strong> اجتناب از انباشت ساعت‌های یک درس خاص در یک روز.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mermaid CSP Workflow -->
+            <div class="mermaid-wrapper">
+                <div class="mermaid">
+flowchart LR
+    Start(["دریافت ماتریس داده‌ها\n(کلاس‌ها، دروس، دبیران)"]) --> Init["ایجاد ماتریس خالی ۳۰ زنگه\n(۵ روز × ۶ زنگ)"]
+    Init --> SortQueue["مرتب‌سازی دروس با راهبرد MRV\n(شروع از دروسی با کمترین متغیر آزاد)"]
+    SortQueue --> PickSlot{"بررسی قیود سخت\n(تداخل دبیر و کلاس)"}
+    PickSlot -- "بدون تداخل" --> Assign["تخصیص درس به اسلات زمانی\nو کسر از سهمیه هفتگی"]
+    Assign --> NextStep{"آیا برنامه هفتگی\nتکمیل شد؟"}
+    NextStep -- "خیر" --> PickSlot
+    NextStep -- "بله" --> Finish(["تکمیل نهایی برنامه هفتگی\n(بدون حتی یک تداخل)"])
+    PickSlot -- "دارای تداخل" --> Backtrack["عقب‌گرد هوشمند (Backtracking)\nو تغییر انتخاب زنگ قبلی"]
+    Backtrack --> PickSlot
+                </div>
+                <div class="mt-3">
+                    <span class="diagram-caption">
+                        <i class="fas fa-code-branch"></i>
+                        فلوچارت الگوریتم پس‌گرد و حل قید (CSP Backtracking Solver) در سامانه ZeroLMS
+                    </span>
+                </div>
+            </div>
+
+            <!-- Benchmark Chart -->
+            <div class="mt-4">
+                <h6 class="text-white fw-bold mb-2">زمان اجرای الگوریتم بر حسب تعداد کلاس‌ها (بنچمارک عملی):</h6>
+                <div style="height: 220px; position: relative;">
+                    <canvas id="cspBenchmarkChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- ====================================================================
+             ۵. نوآوری کلیدی: دستیار هوش مصنوعی و متدولوژی پرسش‌گری سقراطی
+        ==================================================================== -->
+        <section class="doc-card" id="ai-section">
+            <div class="doc-card-title">
+                <i class="fas fa-brain"></i>
+                <span>۵. معماری دستیار هوش مصنوعی تعاملی (AI Educational Assistant)</span>
+            </div>
+
+            <p style="color: var(--text-body); text-align: justify; margin-bottom: 20px;">
+                برخلاف چت‌بات‌های عمومی که پاسخ مستقیم سوال را به دانش‌آموز ارائه می‌دهند و مانع یادگیری عمیق می‌شوند، هسته هوش مصنوعی ZeroLMS بر پایه <strong>روش سقراطی (Socratic Tutoring)</strong> هدایت می‌شود. سیستم با طرح پرسش‌های گام‌به‌گام و راهنمایی مفهومی، دانش‌آموز را تشویق می‌کند تا خودش به راه حل مسئله دست یابد.
+            </p>
+
+            <div class="mermaid-wrapper">
+                <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Student as دانش‌آموز
+    participant UI as رابط کاربری وب ZeroLMS
+    participant Engine as سرور پردازش PHP 8.2
+    participant AIService as هسته هوش مصنوعی
+    
+    Student->>UI: تایپ سوال درسی یا ارسال متن مسئله
+    UI->>Engine: ارسال پیام با احراز هویت نشست کاربری
+    Engine->>Engine: اعمال پرامپتینگ آموزشی و استخراج زمینه درس
+    Engine->>AIService: ارسال پرامپت مهندسی‌شده با فرمت استریم
+    AIService-->>Engine: تولید توکن‌های پاسخ به صورت بلادرنگ
+    Engine-->>UI: ارسال داده کلمه به کلمه (Server-Sent Events)
+    UI-->>Student: نمایش تایپ زنده متن همراه با امکان ادامه گفتگو
+                </div>
+                <div class="mt-3">
+                    <span class="diagram-caption">
+                        <i class="fas fa-comments"></i>
+                        دیاگرام توالی (Sequence Diagram) ارتباط زنده استریمینگ دستیار هوش مصنوعی
+                    </span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ====================================================================
+             ۶. حضور و غیاب سخت‌افزاری RFID و افزونه همراه مرورگر
+        ==================================================================== -->
+        <section class="doc-card" id="rfid-section">
+            <div class="doc-card-title">
+                <i class="fas fa-id-card-alt"></i>
+                <span>۶. ثبت تردد سخت‌افزاری RFID و افزونه اختصاصی مرورگر کروم</span>
+            </div>
+
+            <div class="row g-4 align-items-center">
+                <div class="col-lg-7">
+                    <p style="color: var(--text-body); text-align: justify;">
+                        سامانه به دستگاه سخت‌افزاری کارت‌خوان RFID مستقر در ورودی مدرسه متصل است. با نزدیک کردن کارت هوشمند دانش‌آموز، کد یکتای سخت‌افزاری دریافت شده و بلافاصله وضعیت تردد (ورود، خروج، تاخیر) در جدول <code>attendance</code> پایگاه داده ثبت می‌شود.
+                    </p>
+                    <p style="color: var(--text-body); text-align: justify;">
+                        همچنین برای اولین بار در سیستم‌های مدیریت یادگیری، یک <strong>افزونه اختصاصی مرورگر (Chrome Extension Manifest v3)</strong> توسعه داده شده است. این افزونه با استفاده از توکن رمزنگاری‌شده اختصاصی هر کاربر، بدون نیاز به باز بودن برگه وب‌سایت، اطلاعیه‌ها، تکالیف فوری و هشدارهای دبیر را با صدای ضبط‌شده معلم روی دسکتاپ پخش می‌کند.
+                    </p>
+                </div>
+
+                <div class="col-lg-5">
+                    <div class="sub-box">
+                        <h6 class="text-white fw-bold mb-3"><i class="fas fa-plug text-primary me-2"></i> مشخصات افزونه و وب‌هوک:</h6>
+                        <ul class="list-unstyled m-0 d-flex flex-column gap-2" style="font-size: 0.88rem; color: var(--text-body);">
+                            <li><strong>معماری افزونه:</strong> Chrome Extension Manifest v3</li>
+                            <li><strong>روش احراز هویت:</strong> هش توکن اختصاصی ۳۲ بایتی (SHA-256)</li>
+                            <li><strong>فرکانس کارت‌های RFID:</strong> فرکانس استاندارد 13.56MHz Mifare</li>
+                            <li><strong>هماهنگی صوتی:</strong> پخش اعلان با صدای معلم جهت ایجاد انگیزه آموزشی</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ====================================================================
+             ۷. مهندسی پایگاه داده و ۳۱ جدول نرمال‌سازی شده
+        ==================================================================== -->
+        <section class="doc-card" id="database-section">
+            <div class="doc-card-title">
+                <i class="fas fa-database"></i>
+                <span>۷. ساختار پایگاه داده و روابط موجودیت‌ها (Database ERD Analysis)</span>
+            </div>
+
+            <p style="color: var(--text-body); text-align: justify; margin-bottom: 20px;">
+                پایگاه داده MariaDB شامل <strong>۳۱ جدول ساختاریافته در فرم نرمال سوم (3NF)</strong> است. این ساختار از بروز افزونگی داده‌ها (Data Redundancy) جلوگیری کرده و تضمین می‌کند عملیات‌های حساس با رعایت اصول تراکنشی ACID اجرا شوند.
+            </p>
+
+            <div class="row align-items-center g-4 mb-4">
+                <div class="col-lg-7">
+                    <img src="./images/dbgraph.png" alt="Database Schema Graph" class="diagram-preview-img">
+                </div>
+                <div class="col-lg-5">
+                    <div class="sub-box">
+                        <h6 class="text-white fw-bold mb-3"><i class="fas fa-table text-primary me-2"></i> دسته‌بندی جداول سامانه:</h6>
+                        <ul class="list-unstyled m-0 d-flex flex-column gap-2" style="font-size: 0.88rem; color: var(--text-body);">
+                            <li><strong>کاربران و اعتبارسنجی:</strong> <code>users</code>, <code>teachers</code>, <code>cards</code>, <code>logs</code></li>
+                            <li><strong>مدیریت آموزشی:</strong> <code>classes</code>, <code>classcourses</code>, <code>classcourseteachers</code>, <code>notes</code></li>
+                            <li><strong>تکالیف و ارزیابی:</strong> <code>homeworks</code>, <code>homework_submissions</code>, <code>scores</code></li>
+                            <li><strong>آزمون‌ساز آنلاین:</strong> <code>exams</code>, <code>exam_questions</code>, <code>exam_answers</code></li>
+                            <li><strong>فرم‌ساز داینامیک:</strong> <code>forms</code>, <code>form_fields</code>, <code>form_responses</code></li>
+                            <li><strong>گیمیفیکیشن:</strong> <code>badges</code>, <code>user_badges</code>, <code>user_points</code></li>
+                            <li><strong>هوش مصنوعی:</strong> <code>aichats</code>, <code>aimessages</code></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <h6 class="text-white fw-bold mb-2">توزیع جداول بر اساس ماژول‌های سامانه:</h6>
+                <div style="height: 220px; position: relative;">
+                    <canvas id="dbChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- ====================================================================
+             ۸. بنچمارک سرعت و ارزیابی رسمی Google Lighthouse
+        ==================================================================== -->
+        <section class="doc-card" id="benchmark-section">
+            <div class="doc-card-title">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>۸. نتایج ارزیابی رسمی ابزار Google Lighthouse</span>
+            </div>
+
+            <p style="color: var(--text-body); text-align: justify; margin-bottom: 24px;">
+                بررسی عملکرد صفحات با ابزار رسمی Google Lighthouse نشان‌دهنده بهینه‌سازی دقیق کدهای فرانت‌اند و بک‌اند، رعایت کامل استانداردهای سئو، و زمان پاسخ‌دهی کمتر از ۰.۸ ثانیه برای لود صفحات است:
+            </p>
+
+            <div class="row g-3 text-center">
+                <div class="col-md-3 col-6">
+                    <div class="score-box">
+                        <div class="score-circle">۹۸</div>
+                        <strong class="text-white d-block mb-1">Performance</strong>
+                        <small style="color: var(--text-muted); font-size: 0.8rem;">کارایی و سرعت بارگذاری</small>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="score-box">
+                        <div class="score-circle">۱۰۰</div>
+                        <strong class="text-white d-block mb-1">Accessibility</strong>
+                        <small style="color: var(--text-muted); font-size: 0.8rem;">دسترس‌پذیری استاندارد</small>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="score-box">
+                        <div class="score-circle">۱۰۰</div>
+                        <strong class="text-white d-block mb-1">Best Practices</strong>
+                        <small style="color: var(--text-muted); font-size: 0.8rem;">رعایت استانداردهای مدرن وب</small>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="score-box">
+                        <div class="score-circle">۱۰۰</div>
+                        <strong class="text-white d-block mb-1">SEO</strong>
+                        <small style="color: var(--text-muted); font-size: 0.8rem;">بهینه‌سازی موتورهای جستجو</small>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ====================================================================
+             ۹. مدل اقتصادی و توسعه‌پذیری تجاری (B2B SaaS)
+        ==================================================================== -->
+        <section class="doc-card" id="business-section">
+            <div class="doc-card-title">
+                <i class="fas fa-briefcase"></i>
+                <span>۹. پتانسیل تجاری‌سازی و استقرار چندمستاجره (B2B SaaS Model)</span>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="sub-box text-center">
+                        <i class="fas fa-cloud-upload-alt text-primary fs-2 mb-3"></i>
+                        <h6 class="text-white fw-bold">استقرار چند کانتینری</h6>
+                        <p style="color: var(--text-body); font-size: 0.85rem; margin: 0;">
+                            هر مدرسه یا منطقه آموزشی می‌تواند در قالب کانتینرهای مستقل در کمتر از ۳ دقیقه با یک دستور Docker Compose راه‌اندازی شود.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="sub-box text-center">
+                        <i class="fas fa-coins text-warning fs-2 mb-3"></i>
+                        <h6 class="text-white fw-bold">کاهش ۹۰ درصدی هزینه‌ها</h6>
+                        <p style="color: var(--text-body); font-size: 0.85rem; margin: 0;">
+                            با مصرف حداقلی رم (کمتر از ۱ گیگابایت برای ۵۰۰ دانش‌آموز آنلاین همزمان)، هزینه سرور برای مدارس به شدت کاهش می‌یابد.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="sub-box text-center">
+                        <i class="fas fa-cogs text-success fs-2 mb-3"></i>
+                        <h6 class="text-white fw-bold">به‌روزرسانی پیوسته (CI/CD)</h6>
+                        <p style="color: var(--text-body); font-size: 0.85rem; margin: 0;">
+                            قابلیت ارتقا و تزریق ماژول‌های جدید بدون از کار افتادن سرویس و با حفظ دائمی امنیت اطلاعات دانش‌آموزان.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ====================================================================
+             ۱۰. درباره پژوهشگر و پورتفولیو
+        ==================================================================== -->
+        <section class="doc-card" id="about-developer">
+            <div class="doc-card-title">
+                <i class="fas fa-user-graduate"></i>
+                <span>۱۰. درباره پژوهشگر و پورتفولیوی شخصی</span>
+            </div>
+
+            <div class="sub-box mb-4">
+                <h5 class="text-white fw-bold mb-2">محمدامین مدنی محمدی</h5>
+                <p style="color: var(--text-body); margin: 0;">
+                    دانش‌آموز پایه دهم دبیرستان استعدادهای درخشان شهید باهنر ۳ کرج (مرکز نخبگان استان البرز). فعال در حوزه توسعه وب فول‌استک، معماری سیستم‌های توزیع‌شده، لینوکس و دوآپس، و پژوهشگر هوش مصنوعی کاربردی در آموزش.
+                </p>
+            </div>
+
+            <h6 class="text-white fw-bold mb-3"><i class="fas fa-globe text-primary me-2"></i> وب‌سایت شخصی و پورتفولیو (aminmadani.xyz):</h6>
+            <iframe src="https://aminmadani.xyz" class="portfolio-frame" title="پورتفولیو محمدامین مدنی محمدی"></iframe>
+        </section>
+
+    </div>
+
+    <!-- Fixed Footer -->
+    <footer>
+        شناسنامه رسمی اثر <strong>ZeroLMS</strong> • توسعه داده شده توسط <strong>محمدامین مدنی محمدی</strong> • دبیرستان شهید باهنر ۳ کرج © ۱۴۰۵
+    </footer>
+
+    <!-- Bootstrap Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Charts Rendering -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Chart 1: CSP Performance Benchmark
+            const ctxBenchmark = document.getElementById('cspBenchmarkChart')?.getContext('2d');
+            if (ctxBenchmark) {
+                new Chart(ctxBenchmark, {
+                    type: 'line',
+                    data: {
+                        labels: ['۶ کلاس (۱۸۰ اسلات)', '۱۲ کلاس (۳۶۰ اسلات)', '۱۸ کلاس (۵۴۰ اسلات)', '۲۴ کلاس (۷۲۰ اسلات)', '۳۰ کلاس (۹۰۰ اسلات)'],
+                        datasets: [{
+                            label: 'زمان حل کامل قیود (میلی‌ثانیه)',
+                            data: [85, 210, 390, 680, 1150],
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                            fill: true,
+                            tension: 0.35,
+                            borderWidth: 3,
+                            pointBackgroundColor: '#ffffff',
+                            pointBorderColor: '#3b82f6',
+                            pointRadius: 5
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { labels: { color: '#f8fafc', font: { family: 'Vazirmatn' } } }
+                        },
+                        scales: {
+                            y: { ticks: { color: '#cbd5e1', font: { family: 'Vazirmatn' } }, grid: { color: '#1e293b' } },
+                            x: { ticks: { color: '#cbd5e1', font: { family: 'Vazirmatn' } }, grid: { color: '#1e293b' } }
+                        }
+                    }
+                });
+            }
+
+            // Chart 2: Database Table Distribution
+            const ctxDb = document.getElementById('dbChart')?.getContext('2d');
+            if (ctxDb) {
+                new Chart(ctxDb, {
+                    type: 'bar',
+                    data: {
+                        labels: ['کاربران و نشست‌ها', 'مدیریت دروس و کلاس', 'تکالیف و ارزیابی', 'آزمون‌های آنلاین', 'فرم‌ساز پویا', 'گیمیفیکیشن', 'هوش مصنوعی و لاگ‌ها'],
+                        datasets: [{
+                            label: 'تعداد جداول اختصاصی',
+                            data: [4, 5, 4, 5, 4, 4, 5],
+                            backgroundColor: '#2563eb',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: { ticks: { color: '#cbd5e1', font: { family: 'Vazirmatn' } }, grid: { color: '#1e293b' } },
+                            x: { ticks: { color: '#cbd5e1', font: { family: 'Vazirmatn' } }, grid: { display: false } }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

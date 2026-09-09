@@ -58,7 +58,7 @@ $class_name = $data ? htmlspecialchars($data['class_name']) : 'کلاس ناشن
     <link href="../../css/bootstrap.rtl.min.css" rel="stylesheet">
     <link href="../../css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../../css/fontawesome.min.css">
-    <link rel="icon" type="image/png" sizes="16x16" href="../images/favicon.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../../images/favicon.png">
     <link rel="stylesheet" href="../assets/style.css">
 
     <style>

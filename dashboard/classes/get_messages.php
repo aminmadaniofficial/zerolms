@@ -1,8 +1,31 @@
 <?php
+/**
+ *     _____                    __   __  ___ _____
+ *    /__  /  ___  _________   / /  /  |/  // ___/
+ *      / /  / _ \/ ___/ __ \ / /  / /|_/ / \__ \ 
+ *     / /__/  __/ /  / /_/ // /__/ /  / / ___/ / 
+ *    /____/\___/_/   \____//____/_/  /_/ /____/  
+ * 
+ * ------------------------------------------------------------
+ *  System      : Zero LMS Core Engine
+ *  Author      : Amin Madani
+ *  Created     : 2026
+ *  Notice      : Unauthorized copying or modification of this file,
+ *                via any medium is strictly prohibited.
+ * ------------------------------------------------------------
+ */
+
+session_start();
 require_once '../../db.php';
 
 header('Content-Type: application/json');
-ob_clean();
+
+if (!isset($_SESSION['user_id'])) {
+    http_response_code(403);
+    echo json_encode(['error' => 'دسترسی غیرمجاز']);
+    exit();
+}
+
 $class_course_id = isset($_GET['class_course_id']) ? (int)$_GET['class_course_id'] : 0;
 
 if ($class_course_id <= 0) {
@@ -12,6 +35,7 @@ if ($class_course_id <= 0) {
 }
 
 try {
+    // Query course messages joined with sender name
     $stmt = $pdo->prepare("
         SELECT m.id, m.content, m.created_at, u.name
         FROM messages m
@@ -25,9 +49,9 @@ try {
     $encodedMessages = array_map(function($message) {
         return [
             'id' => (int)$message['id'], 
-            'content' => htmlspecialchars($message['content']),
-            'created_at' => htmlspecialchars($message['created_at']),
-            'name' => htmlspecialchars($message['name'])
+            'content' => htmlspecialchars($message['content'] ?? ''),
+            'created_at' => htmlspecialchars($message['created_at'] ?? ''),
+            'name' => htmlspecialchars($message['name'] ?? '')
         ];
     }, $messages);
 

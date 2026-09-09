@@ -1,17 +1,45 @@
 <?php
+/**
+ *     _____                    __   __  ___ _____
+ *    /__  /  ___  _________   / /  /  |/  // ___/
+ *      / /  / _ \/ ___/ __ \ / /  / /|_/ / \__ \ 
+ *     / /__/  __/ /  / /_/ // /__/ /  / / ___/ / 
+ *    /____/\___/_/   \____//____/_/  /_/ /____/  
+ * 
+ * ------------------------------------------------------------
+ *  System      : Zero LMS Core Engine
+ *  Author      : Amin Madani
+ *  Created     : 2026
+ *  Notice      : Unauthorized copying or modification of this file,
+ *                via any medium is strictly prohibited.
+ * ------------------------------------------------------------
+ */
+
 session_start();
 require_once '../../db.php';
 
+/**
+ * Escape HTML input string to avoid potential XSS vulnerability.
+ * 
+ * @param string|null $string Unsanitized text string
+ * @return string Safe HTML escaped output
+ */
 function e($string)
 {
     return htmlspecialchars($string ?? '', ENT_QUOTES, 'UTF-8');
 }
 
-
+// Include Jalali Date conversion library if available
 if (file_exists('../../jdf.php')) {
     require_once '../../jdf.php';
 }
 
+/**
+ * Convert standard timestamp to formatted Persian Jalali string.
+ * 
+ * @param string $date_str Valid date string
+ * @return string Formatted Jalali output or raw string fallback
+ */
 function toJalali($date_str)
 {
     if (empty($date_str))
@@ -32,18 +60,22 @@ function toJalali($date_str)
     }
 }
 
+// Extract target post ID and sanitize integer input
 $post_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 $lang = $_SESSION['lang'] ?? 'fa';
 $dir = $lang === 'fa' ? 'rtl' : 'ltr';
 
+// Prepare database statement to query article by primary key ID
 $stmt = $pdo->prepare("SELECT title, content, author_name, image_path, created_at FROM posts WHERE id = :id");
 $stmt->execute(['id' => $post_id]);
 $post = $stmt->fetch(PDO::FETCH_ASSOC);
 
+// Return HTTP 404 message state if requested article does not exist
 if (!$post) {
     die("مقاله مورد نظر یافت نشد.");
 }
 
+// Localized language strings
 $t_page = [
     'fa' => ['back' => 'بازگشت به وبلاگ', 'author' => 'نویسنده:', 'published' => 'تاریخ انتشار:'],
     'en' => ['back' => 'Back to Blog', 'author' => 'Author:', 'published' => 'Published:']
@@ -58,7 +90,7 @@ $t_page = [
     <title><?= e($post['title']) ?> | دبیرستان باهنر ۳</title>
     <meta name="description" content="<?= e(mb_substr(strip_tags($post['content']), 0, 150)) ?>">
 
-    <!-- JSON-LD برای سئو -->
+    <!-- Article Structured Data Markup (JSON-LD) -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -98,6 +130,7 @@ $t_page = [
 
 <body class="text-slate-700">
 
+    <!-- Top Navigation Container -->
     <header class="bg-white shadow-sm sticky top-0 z-50 py-4">
         <div class="container mx-auto px-4 max-w-4xl flex justify-between items-center">
             <a href="../index.php" class="text-slate-500 hover:text-blue-600 font-bold transition-colors">
@@ -106,10 +139,11 @@ $t_page = [
         </div>
     </header>
 
+    <!-- Main Article Article Layout -->
     <main class="py-12">
         <div class="container mx-auto px-4 max-w-4xl">
             <article class="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100">
-                <!-- عکس مقاله -->
+                <!-- Cover Image Header -->
                 <?php if (!empty($post['image_path'])): ?>
                     <div class="w-full h-[40vh] md:h-[60vh] bg-slate-200">
                         <img src="../../<?= e($post['image_path']) ?>" alt="<?= e($post['title']) ?>"
@@ -130,14 +164,14 @@ $t_page = [
                             <?= $lang === 'fa' ? toJalali($post['created_at']) : date('M d, Y', strtotime($post['created_at'])) ?></span>
                     </div>
 
-                    <!-- محتوای مقاله -->
+                    <!-- Article Body View -->
                     <div class="post-content text-slate-600 text-lg">
                         <?= nl2br(e(str_replace('\n', "\n", $post['content']))) ?>
                     </div>
                 </div>
             </article>
 
-            <!-- فوتر اختصاصی صفحه مقاله -->
+            <!-- Dedicated Article Footer -->
             <div class="mt-12 text-center text-slate-400 text-sm">
                 &copy; <?= date('Y') ?> دبیرستان هوشمند شهید باهنر ۳ کرج
             </div>

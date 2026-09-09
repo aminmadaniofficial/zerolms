@@ -29,8 +29,8 @@ try {
     if (!empty($class_course_ids)) {
         $placeholders = implode(',', array_fill(0, count($class_course_ids), '?'));
 
-        
-        $stmt = $pdo->prepare("DELETE FROM attendance WHERE class_course_id IN ($placeholders)");
+        // Delete report cards associated with these class courses
+        $stmt = $pdo->prepare("DELETE FROM report_cards WHERE class_course_id IN ($placeholders)");
         $stmt->execute($class_course_ids);
 
         

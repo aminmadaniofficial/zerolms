@@ -1,24 +1,30 @@
 <?php
+/**
+ *     _____                    __   __  ___ _____
+ *    /__  /  ___  _________   / /  /  |/  // ___/
+ *      / /  / _ \/ ___/ __ \ / /  / /|_/ / \__ \ 
+ *     / /__/  __/ /  / /_/ // /__/ /  / / ___/ / 
+ *    /____/\___/_/   \____//____/_/  /_/ /____/  
+ * 
+ * ------------------------------------------------------------
+ *  System      : Zero LMS Core Engine
+ *  Author      : Amin Madani
+ *  Created     : 2026
+ *  Notice      : Unauthorized copying or modification of this file,
+ *                via any medium is strictly prohibited.
+ * ------------------------------------------------------------
+ */
+
 session_start();
 require_once '../db.php';
 
-
+// Extract submitted login credentials
 $username = $_POST['username'] ?? '';
 $password = $_POST['password'] ?? '';
 
+require_once '../log.php';
 
-function addLog($pdo, $user_id, $action, $target_type='login', $target_id=-1){
-    $stmt = $pdo->prepare("INSERT INTO logs (user_id, action, target_type, target_id, created_at) 
-                           VALUES (:user_id, :action, :target_type, :target_id, NOW())");
-    $stmt->execute([
-        'user_id' => $user_id,
-        'action' => $action,
-        'target_type' => $target_type,
-        'target_id' => $target_id
-    ]);
-}
-
-
+// Clear legacy cookies if session is empty but stale cookies remain
 if (!isset($_SESSION['user_id']) && isset($_COOKIE['user_id'])) {
     setcookie("user_id", "", time() - 3600, "/");
     setcookie("username", "", time() - 3600, "/");
@@ -26,31 +32,34 @@ if (!isset($_SESSION['user_id']) && isset($_COOKIE['user_id'])) {
     unset($_COOKIE['user_id'], $_COOKIE['username'], $_COOKIE['role']);
 }
 
-
-
+// Authenticate submitted credentials
 if($username && $password){
     $stmt = $pdo->prepare("SELECT * FROM users WHERE username = :username LIMIT 1");
     $stmt->execute(['username' => $username]);
     $user = $stmt->fetch();
 
     if ($user && password_verify($password, $user['password'])) {
-        
+        // Prevent session fixation
+        session_regenerate_id(true);
+
+        // Set up active user session variables
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['username'] = $user['username'];
         $_SESSION['role'] = $user['role'];
+        $_SESSION['feedback_submitted'] = false;
 
-        
+        // Set persistent 7-day authentication cookies
         setcookie('user_id', $user['id'], time() + (86400 * 7), "/");
         setcookie('username', $user['username'], time() + (86400 * 7), "/");
         setcookie('role', $user['role'], time() + (86400 * 7), "/");
 
-        
+        // Log successful login action
         addLog($pdo, $user['id'], 'login_success');
 
         header("Location: index.php?success=1");
         exit();
     } else {
-        
+        // Log failed login attempt
         $user_id = $user['id'] ?? -1;
         addLog($pdo, $user_id, 'login_failed');
 
@@ -58,9 +67,9 @@ if($username && $password){
         exit();
     }
 } else {
-    
+    // Log attempt with missing mandatory fields
     addLog($pdo, -1, 'login_failed_empty');
-    header("Location: login.php?error=1");
+    header("Location: index.php?error=1");
     exit();
 }
 ?>

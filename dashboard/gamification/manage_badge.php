@@ -1,4 +1,20 @@
 <?php
+/**
+ *     _____                    __   __  ___ _____
+ *    /__  /  ___  _________   / /  /  |/  // ___/
+ *      / /  / _ \/ ___/ __ \ / /  / /|_/ / \__ \ 
+ *     / /__/  __/ /  / /_/ // /__/ /  / / ___/ / 
+ *    /____/\___/_/   \____//____/_/  /_/ /____/  
+ * 
+ * ------------------------------------------------------------
+ *  System      : Zero LMS Core Engine
+ *  Author      : Amin Madani
+ *  Created     : 2026
+ *  Notice      : Unauthorized copying or modification of this file,
+ *                via any medium is strictly prohibited.
+ * ------------------------------------------------------------
+ */
+
 session_start();
 require_once '../../db.php';
 
@@ -10,18 +26,26 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 $input = json_decode(file_get_contents('php://input'), true);
 $action = $input['action'] ?? $_POST['action'] ?? '';
 
+// Add new badge
 if ($action === 'add') {
     $name = $_POST['name'] ?? '';
     $description = $_POST['description'] ?? '';
     $image_url = '';
-    if (!empty($_FILES['image']['name'])) {
+    require_once '../../upload_security.php';
+    if (!empty($_FILES['image']['name']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $target_dir = "../../uploads/badges/";
-        if (!is_dir($target_dir)) mkdir($target_dir, 0777, true);
-        $image_url = $target_dir . basename($_FILES['image']['name']);
-        if (!move_uploaded_file($_FILES['image']['tmp_name'], $image_url)) {
-            echo json_encode(['success' => false, 'message' => 'خطا در آپلود تصویر']);
+        list($success, $filename_or_err, $dest) = store_safe_upload(
+            $_FILES['image'],
+            $target_dir,
+            ['jpg', 'jpeg', 'png', 'webp', 'svg'],
+            ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'],
+            'badge_'
+        );
+        if (!$success) {
+            echo json_encode(['success' => false, 'message' => 'خطا در آپلود تصویر: ' . $filename_or_err]);
             exit;
         }
+        $image_url = $target_dir . $filename_or_err;
     }
     $stmt = $pdo->prepare("INSERT INTO badges (name, description, image_url) VALUES (?, ?, ?)");
     $success = $stmt->execute([$name, $description, $image_url]);
@@ -34,14 +58,21 @@ if ($action === 'add') {
     $name = $_POST['name'] ?? '';
     $description = $_POST['description'] ?? '';
     $image_url = $_POST['image_url'] ?? '';
-    if (!empty($_FILES['image']['name'])) {
+    require_once '../../upload_security.php';
+    if (!empty($_FILES['image']['name']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $target_dir = "../../uploads/badges/";
-        if (!is_dir($target_dir)) mkdir($target_dir, 0777, true);
-        $image_url = $target_dir . basename($_FILES['image']['name']);
-        if (!move_uploaded_file($_FILES['image']['tmp_name'], $image_url)) {
-            echo json_encode(['success' => false, 'message' => 'خطا در آپلود تصویر']);
+        list($success, $filename_or_err, $dest) = store_safe_upload(
+            $_FILES['image'],
+            $target_dir,
+            ['jpg', 'jpeg', 'png', 'webp', 'svg'],
+            ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'],
+            'badge_'
+        );
+        if (!$success) {
+            echo json_encode(['success' => false, 'message' => 'خطا در آپلود تصویر: ' . $filename_or_err]);
             exit;
         }
+        $image_url = $target_dir . $filename_or_err;
     }
     $stmt = $pdo->prepare("UPDATE badges SET name = ?, description = ?, image_url = ? WHERE id = ?");
     $success = $stmt->execute([$name, $description, $image_url, $id]);

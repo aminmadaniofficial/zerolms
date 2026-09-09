@@ -1,4 +1,20 @@
 <?php
+/**
+ *     _____                    __   __  ___ _____
+ *    /__  /  ___  _________   / /  /  |/  // ___/
+ *      / /  / _ \/ ___/ __ \ / /  / /|_/ / \__ \ 
+ *     / /__/  __/ /  / /_/ // /__/ /  / / ___/ / 
+ *    /____/\___/_/   \____//____/_/  /_/ /____/  
+ * 
+ * ------------------------------------------------------------
+ *  System      : Zero LMS Core Engine
+ *  Author      : Amin Madani
+ *  Created     : 2026
+ *  Notice      : Unauthorized copying or modification of this file,
+ *                via any medium is strictly prohibited.
+ * ------------------------------------------------------------
+ */
+
 session_start();
 require_once '../../db.php';
 
@@ -7,36 +23,27 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     exit;
 }
 
+require_once '../../upload_security.php';
+
 if (!isset($_FILES['file'])) {
     echo json_encode(['error' => 'هیچ فایلی آپلود نشد']);
     exit;
 }
 
 $file = $_FILES['file'];
-$allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
-$max_size = 5 * 1024 * 1024; 
-
-if (!in_array($file['type'], $allowed_types)) {
-    echo json_encode(['error' => 'فرمت فایل مجاز نیست']);
-    exit;
-}
-
-if ($file['size'] > $max_size) {
-    echo json_encode(['error' => 'حجم فایل بیش از حد مجاز است']);
-    exit;
-}
-
 $upload_dir = '../uploads/images/';
-if (!is_dir($upload_dir)) {
-    mkdir($upload_dir, 0755, true);
-}
+list($success, $filename_or_err, $dest) = store_safe_upload(
+    $file,
+    $upload_dir,
+    ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+    ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+    'form_img_',
+    5 * 1024 * 1024
+);
 
-$file_name = uniqid() . '_' . $file['name'];
-$destination = $upload_dir . $file_name;
-
-if (move_uploaded_file($file['tmp_name'], $destination)) {
-    echo json_encode(['location' => $destination]);
+if ($success) {
+    echo json_encode(['location' => $dest]);
 } else {
-    echo json_encode(['error' => 'خطا در آپلود فایل']);
+    echo json_encode(['error' => $filename_or_err]);
 }
 ?>

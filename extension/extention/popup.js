@@ -1,35 +1,34 @@
+const BASE_DOMAIN = "https://zerolms.aminmadani.xyz"; // در صورت تغییر دامنه یا لوکال‌هاست این آدرس را تغییر دهید
+const VALIDATE_URL = `${BASE_DOMAIN}/dashboard/api/extension/validate_token.php?token=`;
+const NOTIF_URL    = `${BASE_DOMAIN}/dashboard/api/extension/notifications.php?token=`;
 
-const VALIDATE_URL = "https://bahonarkaraj.ir/dashboard/api/extension/validate_token.php?token=";
-const NOTIF_URL    = "https://bahonarkaraj.ir/dashboard/api/extension/notifications.php?token=";
 let currentToken = null;
 
 document.addEventListener("DOMContentLoaded", () => {
-    
     const connectBtn = document.getElementById("connectBtn");
     const settingsBtn = document.getElementById("settingsBtn");
 
-    if (!connectBtn || !settingsBtn) {
-        console.error("دکمه‌ها پیدا نشدند! HTML رو چک کن");
-        return;
+    if (connectBtn) connectBtn.addEventListener("click", connect);
+    if (settingsBtn) {
+        settingsBtn.addEventListener("click", () => {
+            showLoginModal();
+            document.getElementById("tokenInput").focus();
+        });
     }
-
-    connectBtn.addEventListener("click", connect);
-    settingsBtn.addEventListener("click", () => {
-        document.getElementById("loginModal").style.display = "flex";
-        document.getElementById("tokenInput").focus();
-    });
 
     loadTokenAndCheck();
 });
 
 async function connect() {
-    const token = document.getElementById("tokenInput").value.trim();
-    if (!token || token.length < 32) {
-        showLoginMessage("توکن باید ۳۲ کاراکتر باشه!", "danger");
+    const tokenInput = document.getElementById("tokenInput");
+    const token = tokenInput ? tokenInput.value.trim() : "";
+
+    if (!token || token.length !== 32) {
+        showLoginMessage("توکن باید ۳۲ کاراکتر باشد.", "danger");
         return;
     }
 
-    showLoginMessage("در حال اتصال...", "info");
+    showLoginMessage("در حال اعتبار سنجی...", "info");
 
     try {
         const res = await fetch(VALIDATE_URL + token);
@@ -37,22 +36,19 @@ async function connect() {
 
         const data = await res.json();
 
-        if (data.success && data.user) {
+        if (data.success) {
             chrome.storage.local.set({ token: token }, () => {
                 currentToken = token;
                 hideLoginModal();
-                updateStatus(`متصل به ${data.user}`, true);
-                showLoginMessage("با موفقیت وصل شدی!", "success");
+                updateStatus(`متصل: ${data.user}`, true);
                 chrome.runtime.sendMessage({ action: "setToken", token: token });
-                setTimeout(() => document.getElementById("loginMessage").innerHTML = "", 3000);
-                checkConnection(); 
+                checkConnection();
             });
         } else {
-            showLoginMessage("توکن اشتباه یا منقضی شده!", "danger");
+            showLoginMessage("توکن نامعتبر یا منقضی شده است.", "danger");
         }
     } catch (e) {
-        console.error(e);
-        showLoginMessage("اتصال به سرور ممکن نیست!", "danger");
+        showLoginMessage("ارتباط با سرور برقرار نشد.", "danger");
     }
 }
 
@@ -73,59 +69,75 @@ async function checkConnection() {
 
     try {
         const res = await fetch(NOTIF_URL + currentToken);
-        if (!res.ok) throw new Error("خطا");
+        if (!res.ok) throw new Error("Error");
 
         const data = await res.json();
         updateNotifications(data.notifications || []);
         updateStatus("متصل", true);
-
     } catch (e) {
-        updateStatus("اتصال قطع است", false);
+        updateStatus("قطع ارتباط", false);
         updateNotifications([]);
     }
 }
 
-
 function updateStatus(text, isOnline) {
+    const badge = document.getElementById("statusBadge");
     const statusText = document.getElementById("statusText");
-    const statusIcon = document.getElementById("statusIcon");
     if (statusText) statusText.textContent = text;
-    if (statusIcon) {
-        statusIcon.className = isOnline ? "bi bi-wifi online" : "bi bi-wifi-off offline";
+    if (badge) {
+        badge.className = isOnline ? "status-badge online" : "status-badge offline";
     }
 }
-
 
 function updateNotifications(notifs) {
     const list = document.getElementById("notificationsList");
     if (!list) return;
 
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>"']/g, function(m) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+        });
+    }
+
     if (notifs.length === 0) {
-        list.innerHTML = `<div class="empty">هیچ هشداری وجود ندارد</div>`;
+        list.innerHTML = `<div class="empty"><i class="bi bi-check2-circle fs-3 d-block mb-2 text-success"></i>اعلان جدیدی وجود ندارد.</div>`;
     } else {
-        list.innerHTML = notifs.map(n => `
-            <div class="notif-item">
-                <div class="notif-title">${n.title || "هشدار"}</div>
-                <div>${n.message}</div>
-                <div class="notif-time">چند لحظه پیش</div>
-            </div>
-        `).join("");
+        list.innerHTML = notifs.map(n => {
+            let icon = "bi-bell";
+            let color = "#38bdf8";
+
+            if (n.type === "homework") { icon = "bi-journal-check"; color = "#fbbf24"; }
+            else if (n.type === "exam") { icon = "bi-pen"; color = "#f43f5e"; }
+            else if (n.type === "grade") { icon = "bi-trophy"; color = "#34d399"; }
+            else if (n.type === "badge") { icon = "bi-award"; color = "#a855f7"; }
+            else if (n.type === "absence") { icon = "bi-exclamation-octagon"; color = "#f43f5e"; }
+
+            return `
+                <div class="notif-item">
+                    <div class="notif-title" style="color: ${color};">
+                        <i class="bi ${icon}"></i> ${escapeHtml(n.title || "اعلان")}
+                    </div>
+                    <div class="notif-msg">${escapeHtml(n.message || "")}</div>
+                </div>
+            `;
+        }).join("");
     }
 }
 
 function showLoginModal() {
     const modal = document.getElementById("loginModal");
-    if (modal) modal.style.display = "flex";
+    if (modal) modal.classList.add("active");
 }
 
 function hideLoginModal() {
     const modal = document.getElementById("loginModal");
-    if (modal) modal.style.display = "none";
+    if (modal) modal.classList.remove("active");
 }
 
 function showLoginMessage(text, type) {
     const el = document.getElementById("loginMessage");
     if (!el) return;
-    const color = type === "danger" ? "#ff6b6b" : type === "info" ? "#4ecdc4" : "#00ff88";
-    el.innerHTML = `<small style="color:${color}">${text}</small>`;
+    const color = type === "danger" ? "#f43f5e" : type === "info" ? "#38bdf8" : "#34d399";
+    el.innerHTML = `<span style="color:${color}">${text}</span>`;
 }

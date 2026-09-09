@@ -4,117 +4,50 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(15, 23, 42, 0.7);
-            backdrop-filter: blur(8px);
-            z-index: 9999;
+            background: radial-gradient(circle at center, rgba(15, 23, 42, 0.94) 0%, rgba(11, 17, 32, 0.97) 100%);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            z-index: 99999;
             display: flex;
             justify-content: center;
             align-items: center;
             opacity: 1;
-            transition: opacity 0.5s ease;
+            transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.5s;
         }
 
         .loader-overlay.hidden {
             opacity: 0;
+            visibility: hidden;
             pointer-events: none;
         }
 
-        .loader-content {
+        .loader-container-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             text-align: center;
-            color: #fff;
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin-top: 20px;
         }
 
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
+        #svg-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            filter: drop-shadow(0 0 24px rgba(37, 99, 235, 0.4));
+            margin-bottom: 12px;
         }
-
-        @keyframes pulse {
-            0% {
-                transform: scale(1);
-            }
-
-            50% {
-                transform: scale(1.2);
-            }
-
-            100% {
-                transform: scale(1);
-            }
-        }
-
-
-        .topbar {
-            opacity: 0;
-            transform: translateY(-100%);
-            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
-        }
-
-        .topbar.animate {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .sidebar {
-            right: -300px;
-            transition: opacity 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55), right 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        }
-
-        
-        @media (min-width: 992px) {
-            .sidebar{
-                opacity:0;
-            }
-            .sidebar.animate {
-                opacity: 1;
-                right: 0;
-            }
-        }
-
-        .card,
-        .list-group-item {
-            transform: scale(0.8);
-            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
-            transition-delay: calc(0.1s * var(--index));
-        }
-
-        .card.animate,
-        .list-group-item.animate {
-            opacity: 1;
-            transform: scale(1);
-        }
-
-        footer {
-            opacity: 0;
-            transform: translateY(100%);
-            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
-        }
-
-        footer.animate {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
 
         .svg-hw {
-            height: 250px;
-            width: 250px;
+            height: 240px;
+            width: 240px;
         }
 
         .path {
-            stroke: #ffffff;
-            stroke-width: 3px;
+            stroke: rgba(255, 255, 255, 0.85);
+            stroke-width: 2.5px;
             stroke-linecap: round;
             stroke-linejoin: round;
-            stroke-opacity: 1;
+            stroke-opacity: 0.95;
         }
 
         @keyframes move7050 {
@@ -3314,54 +3247,57 @@
         }
 
         .loading {
-            font-size: 30px;
-            font-family: "nunito", sans-serif;
+            font-size: 28px;
+            font-family: 'Vazirmatn', sans-serif;
             font-weight: 800;
             text-align: center;
             color: #ffffff;
+            letter-spacing: 2px;
+            direction: rtl;
         }
 
         .loading span {
             display: inline-block;
-            margin: 0 -0.1em;
+            margin: 0 1px;
         }
 
         .loading02 span {
-            animation: loading02 1.2s infinite alternate;
+            animation: loading02Wave 1.4s infinite alternate ease-in-out;
         }
 
-        .loading02 span:nth-child(2) {
-            animation-delay: 0.2s;
-        }
+        .loading02 span:nth-child(1) { animation-delay: 0.0s; }
+        .loading02 span:nth-child(2) { animation-delay: 0.15s; }
+        .loading02 span:nth-child(3) { animation-delay: 0.3s; }
+        .loading02 span:nth-child(4) { animation-delay: 0.45s; }
+        .loading02 span:nth-child(5) { animation-delay: 0.6s; }
+        .loading02 span:nth-child(6) { animation-delay: 0.75s; }
+        .loading02 span:nth-child(7) { animation-delay: 0.9s; }
+        .loading02 span:nth-child(8) { animation-delay: 1.05s; }
 
-        .loading02 span:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-
-        .loading02 span:nth-child(4) {
-            animation-delay: 0.6s;
-        }
-
-        .loading02 span:nth-child(5) {
-            animation-delay: 0.8s;
-        }
-
-        .loading02 span:nth-child(6) {
-            animation-delay: 1s;
-        }
-
-        .loading02 span:nth-child(7) {
-            animation-delay: 1.2s;
-        }
-
-        @keyframes loading02 {
+        @keyframes loading02Wave {
             0% {
                 filter: blur(0);
                 opacity: 1;
+                transform: translateY(0);
+                color: #ffffff;
+                text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
             }
 
             100% {
-                filter: blur(5px);
-                opacity: 0.2;
+                filter: blur(1.5px);
+                opacity: 0.35;
+                transform: translateY(-8px);
+                color: #60a5fa;
+                text-shadow: 0 0 20px rgba(96, 165, 250, 0.85);
             }
+        }
+
+        .loader-subtext {
+            font-family: 'Vazirmatn', sans-serif;
+            font-size: 0.88rem;
+            color: #94a3b8;
+            font-weight: 500;
+            margin-top: 10px;
+            text-align: center;
+            letter-spacing: 0.5px;
         }

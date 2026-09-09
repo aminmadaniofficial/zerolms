@@ -1,4 +1,21 @@
 <?php
+/**
+ *     _____                    __   __  ___ _____
+ *    /__  /  ___  _________   / /  /  |/  // ___/
+ *      / /  / _ \/ ___/ __ \ / /  / /|_/ / \__ \ 
+ *     / /__/  __/ /  / /_/ // /__/ /  / / ___/ / 
+ *    /____/\___/_/   \____//____/_/  /_/ /____/  
+ * 
+ * ------------------------------------------------------------
+ *  System      : Zero LMS Core Engine
+ *  Author      : Amin Madani
+ *  Created     : 2026
+ *  Notice      : Unauthorized copying or modification of this file,
+ *                via any medium is strictly prohibited.
+ * ------------------------------------------------------------
+ */
+
+// Initialize PHP session scope and include database instance
 session_start();
 require_once '../db.php';
 ?>
@@ -14,18 +31,23 @@ require_once '../db.php';
     <meta name="robots" content="INDEX,FOLLOW">
     <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no">
     <link rel="icon" type="image/png" sizes="16x16" href="../images/favicon.png">
-    <link rel="manifest" href="../images/manifest.json">
+    <link rel="manifest" href="../manifest.json">
     <meta name="msapplication-TileColor" content="#ffffff">
     <meta name="msapplication-TileImage" content="../images/ms-icon-144x144.png">
     <meta name="theme-color" content="#ffffff">
+    
+    <!-- Google Fonts Imports -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Jost:wght@300;400;500;600;700;800;900&family=Roboto:wght@100;300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- CSS Dependencies -->
     <link rel="stylesheet" href="../css/app.min.css">
-    <link rel="stylesheet" href="css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="../css/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="../css/fontawesome.min.css">
     <link rel="stylesheet" href="../css/style.css">
     <style>
+        /* Custom styling for photo gallery grid cards */
         .gallery-card {
             position: relative;
             overflow: hidden;
@@ -86,10 +108,13 @@ require_once '../db.php';
     </style>
 </head>
 <body>
+    <!-- Preloader Screen Container -->
     <div class="preloader d-none">
         <button class="th-btn style3 preloaderCls">غیرفعال کردن لودر</button>
         <div class="preloader-inner"><span class="loader"></span></div>
     </div>
+    
+    <!-- Mobile Offcanvas Navigation Menu -->
     <div class="th-menu-wrapper">
         <div class="th-menu-area text-center">
             <button class="th-menu-toggle"><i class="fal fa-times"></i></button>
@@ -104,6 +129,8 @@ require_once '../db.php';
             </div>
         </div>
     </div>
+    
+    <!-- Main Desktop Header and Top Navigation -->
     <header class="th-header header-layout6">
         <div class="sticky-wrapper">
             <div class="menu-area">
@@ -154,6 +181,8 @@ require_once '../db.php';
             </div>
         </div>
     </header>
+    
+    <!-- Hero Breadcrumb Header -->
     <div class="breadcumb-wrapper" data-bg-src="../images/breadcumb-bg.jpeg" data-overlay="title" data-opacity="8">
         <div class="breadcumb-shape" data-bg-src="../images/breadcumb_shape_1_1.png"></div>
         <div class="shape-mockup breadcumb-shape2 jump d-lg-block d-none" data-right="30px" data-bottom="30px">
@@ -172,6 +201,8 @@ require_once '../db.php';
             </div>
         </div>
     </div>
+    
+    <!-- Gallery Images Section -->
     <div class="space">
         <div class="container">
             <div class="row gy-4 " id="galleryContainer"></div>
@@ -180,7 +211,9 @@ require_once '../db.php';
             </nav>
         </div>
     </div>
-        <footer class="footer-wrapper footer-layout-default" data-bg-src="../../images/footer-bg.png">
+    
+    <!-- Application Footer -->
+    <footer class="footer-wrapper footer-layout-default" data-bg-src="../../images/footer-bg.png">
         <div class="shape-mockup footer-shape1 jump" data-left="60px" data-top="70px"><img
                 src="../../images/footer-bg-shape1.png" alt="img"></div>
         <div class="shape-mockup footer-shape2 jump-reverse" data-right="80px" data-bottom="120px"><img
@@ -272,16 +305,26 @@ require_once '../db.php';
             </div>
         </div>
     </footer>
+    
+    <!-- Back to Top Button Button Container -->
     <div class="scroll-top">
         <svg class="progress-circle svg-content" width="100%" height="100%" viewBox="-1 -1 102 102">
             <path d="M50,1 a49,49 0 0,1 0,98 a49,49 0 0,1 0,-98" style="transition: stroke-dashoffset 10ms linear 0s; stroke-dasharray: 307.919, 307.919; stroke-dashoffset: 307.919;"></path>
         </svg>
     </div>
+    
+    <!-- Core JS Dependencies -->
     <script src="../js/jquery-3.6.0.min.js"></script>
     <script src="../js/app.min.js"></script>
     <script src="../js/main.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
     <script>
+        /**
+         * Fetch and render gallery items asynchronously via AJAX endpoint.
+         * 
+         * @param {number} page Page index to retrieve
+         */
         async function loadGallery(page = 1) {
             try {
                 const response = await fetch(`fetch_gallery.php?page=${page}&limit=20`, { cache: 'no-cache' });
@@ -290,30 +333,45 @@ require_once '../db.php';
                 if (!data.success) throw new Error(data.error || 'خطای ناشناخته');
                 const galleryContainer = document.getElementById('galleryContainer');
                 galleryContainer.innerHTML = '';
+                function escapeHtml(text) {
+                    if (!text) return '';
+                    const div = document.createElement('div');
+                    div.textContent = text;
+                    return div.innerHTML;
+                }
+
                 if (data.images.length === 0) {
                     galleryContainer.innerHTML = '<div class="col-12"><p class="text-center">هیچ عکسی در گالری وجود ندارد.</p></div>';
                 } else {
                     data.images.forEach(image => {
                         const div = document.createElement('div');
                         div.className = 'col-md-6 col-lg-4 col-xl-3 filter-item';
+                        const safeTitle = escapeHtml(image.title || 'بدون عنوان');
+                        const safePath = encodeURI(image.image_path || '');
                         div.innerHTML = `
                             <div class="gallery-card">
                                 <div class="gallery-img">
-                                    <img src="../${image.image_path}" alt="${image.title || 'بدون عنوان'}">
-                                    <a href="../${image.image_path}" class="gallery-btn popup-image"><i class="fas fa-eye"></i></a>
-                                    <div class="gallery-title-overlay">${image.title || 'بدون عنوان'}</div>
+                                    <img src="../${safePath}" alt="${safeTitle}">
+                                    <a href="../${safePath}" class="gallery-btn popup-image"><i class="fas fa-eye"></i></a>
+                                    <div class="gallery-title-overlay">${safeTitle}</div>
                                 </div>
                             </div>`;
                         galleryContainer.appendChild(div);
                     });
                 }
-                // رندر صفحه‌بندی
+                // Render numerical pagination buttons
                 renderPagination(data.total_pages, page);
             } catch (err) {
                 document.getElementById('galleryContainer').innerHTML = `<div class="col-12"><p class="text-center text-danger">خطا در بارگذاری گالری: ${err.message}</p></div>`;
             }
         }
 
+        /**
+         * Render pagination control list dynamically based on total pages.
+         * 
+         * @param {number} totalPages Total available pages
+         * @param {number} currentPage Active page index
+         */
         function renderPagination(totalPages, currentPage) {
             const paginationContainer = document.getElementById('paginationContainer');
             paginationContainer.innerHTML = '';
@@ -322,13 +380,13 @@ require_once '../db.php';
             const ul = document.createElement('ul');
             ul.className = 'pagination';
 
-            // دکمه قبلی
+            // Previous page item
             const prevLi = document.createElement('li');
             prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
             prevLi.innerHTML = `<a class="page-link" href="#" data-page="${currentPage - 1}">قبلی</a>`;
             ul.appendChild(prevLi);
 
-            // شماره صفحات
+            // Page numbers
             for (let i = 1; i <= totalPages; i++) {
                 const li = document.createElement('li');
                 li.className = `page-item ${i === currentPage ? 'active' : ''}`;
@@ -336,7 +394,7 @@ require_once '../db.php';
                 ul.appendChild(li);
             }
 
-            // دکمه بعدی
+            // Next page item
             const nextLi = document.createElement('li');
             nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
             nextLi.innerHTML = `<a class="page-link" href="#" data-page="${currentPage + 1}">بعدی</a>`;
@@ -344,7 +402,7 @@ require_once '../db.php';
 
             paginationContainer.appendChild(ul);
 
-            // اضافه کردن رویداد به لینک‌های صفحه‌بندی
+            // Add click listeners to dynamic pagination links
             document.querySelectorAll('.page-link').forEach(link => {
                 link.addEventListener('click', (e) => {
                     e.preventDefault();
@@ -356,7 +414,7 @@ require_once '../db.php';
             });
         }
 
-        // بارگذاری اولیه گالری
+        // Trigger initial gallery load upon DOM load
         document.addEventListener('DOMContentLoaded', () => {
             loadGallery(1);
         });

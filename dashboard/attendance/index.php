@@ -1,11 +1,27 @@
 <?php
+/**
+ *     _____                    __   __  ___ _____
+ *    /__  /  ___  _________   / /  /  |/  // ___/
+ *      / /  / _ \/ ___/ __ \ / /  / /|_/ / \__ \ 
+ *     / /__/  __/ /  / /_/ // /__/ /  / / ___/ / 
+ *    /____/\___/_/   \____//____/_/  /_/ /____/  
+ * 
+ * ------------------------------------------------------------
+ *  System      : Zero LMS Core Engine
+ *  Author      : Amin Madani
+ *  Created     : 2026
+ *  Notice      : Unauthorized copying or modification of this file,
+ *                via any medium is strictly prohibited.
+ * ------------------------------------------------------------
+ */
+
 session_start();
 require_once '../../db.php';
 require_once '../../jdf.php';
 date_default_timezone_set('Asia/Tehran');
 
 if (!isset($_SESSION['user_id'])) {
-    header("Location: ../../login.php");
+    header("Location: ../../login/");
     exit;
 }
 
@@ -15,29 +31,19 @@ $action = $_GET['action'] ?? '';
 $student_id = (int) ($_GET['student_id'] ?? 0);
 $session_date = $_GET['session_date'] ?? date('Y-m-d');
 
-function get_current_date() {
-    $ch = curl_init('http://api.time.ir/api/v1/time');
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 5,
-    ]);
-    $response = curl_exec($ch);
-    curl_close($ch);
-    if ($response) {
-        $data = json_decode($response, true);
-        if (isset($data['data']['gregorian']['date'])) {
-            return $data['data']['gregorian']['date']; 
-        }
-    }
-    return date('Y-m-d'); 
-}
-
+/**
+ * Convert standard timestamp to Jalali date format.
+ * 
+ * @param string $date Date string
+ * @return string
+ */
 function to_jalali($date) {
     if (!$date) return '-';
     $timestamp = strtotime($date);
     return jdate('Y/m/d', $timestamp);
 }
 
+// Generate last 30 days array with Gregorian and Jalali dates
 $dates = [];
 for ($i = 0; $i < 30; $i++) {
     $date = date('Y-m-d', strtotime("-$i days"));
@@ -47,6 +53,12 @@ for ($i = 0; $i < 30; $i++) {
     ];
 }
 
+/**
+ * Check if specified date falls on Iranian weekend (Thursday/Friday).
+ * 
+ * @param string $date
+ * @return bool
+ */
 function is_weekend($date) {
     $day = date('w', strtotime($date));
     return $day == 4 || $day == 5;
@@ -54,11 +66,12 @@ function is_weekend($date) {
 
 $students = [];
 if (in_array($role, ['teacher', 'admin'])) {
-    $stmt = $pdo->prepare("SELECT id, name FROM users WHERE role = 'student'");
+    $stmt = $pdo->prepare("SELECT id, name FROM users WHERE role = 'student' ORDER BY name ASC");
     $stmt->execute();
     $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+// Save SMS gateway configuration parameters
 if ($role === 'admin' && $action === 'save_sms_settings' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = $_POST['sms_username'] ?? '';
     $password = $_POST['sms_password'] ?? '';
@@ -71,8 +84,9 @@ if ($role === 'admin' && $action === 'save_sms_settings' && $_SERVER['REQUEST_ME
     exit;
 }
 
+// Register RFID card UFID badge to student
 if ($role === 'admin' && $action === 'register_card' && $_SERVER['REQUEST_METHOD'] === 'POST' && $student_id) {
-    $ufid = $_POST['ufid'] ?? '';
+    $ufid = trim($_POST['ufid'] ?? '');
     if ($ufid) {
         $stmt = $pdo->prepare("REPLACE INTO cards (student_id, ufid) VALUES (?, ?)");
         $stmt->execute([$student_id, $ufid]);
@@ -91,65 +105,7 @@ if ($role === 'admin') {
     }
 }
 
-
-if ($role === 'admin' && $action === 'send_sms_absentees' && $session_date) {
-    $absentees = [];
-    $stmt_students = $pdo->prepare("SELECT id, name, phone FROM users WHERE role = 'student' AND phone IS NOT NULL");
-    $stmt_students->execute();
-    $all_students = $stmt_students->fetchAll(PDO::FETCH_ASSOC);
-
-    foreach ($all_students as $stu) {
-        $absent_periods = [];
-        for ($period = 1; $period <= 4; $period++) {
-            $stmt = $pdo->prepare("SELECT status FROM attendance WHERE student_id = ? AND session_date = ? AND period = ?");
-            $stmt->execute([$stu['id'], $session_date, $period]);
-            $status = $stmt->fetchColumn() ?: (is_weekend($session_date) ? 'weekend' : 'absent');
-            if ($status === 'absent') {
-                $absent_periods[] = $period;
-            }
-        }
-        if (!empty($absent_periods)) {
-            $absentees[] = [
-                'id' => $stu['id'],
-                'name' => $stu['name'],
-                'phone' => $stu['phone'],
-                'zangha' => implode('، ', $absent_periods)
-            ];
-        }
-    }
-
-    $url = 'https://sms.asanak.ir/webservice/v2rest/sendsms';
-    foreach ($absentees as $absentee) {
-        $message = $sms_settings['sms_template'];
-        $message = str_replace(['{name}', '{date}', '{zangha}'], [$absentee['name'], to_jalali($session_date), $absentee['zangha']], $message);
-
-        $postFields = json_encode([
-            'username' => $sms_settings['sms_username'],
-            'password' => $sms_settings['sms_password'],
-            'source' => $sms_settings['sms_source'],
-            'message' => $message,
-            'destination' => $absentee['phone']
-        ]);
-
-        $curl = curl_init($url);
-        curl_setopt_array($curl, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => '',
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS => $postFields,
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Accept: application/json'],
-        ]);
-        $response = curl_exec($curl);
-        curl_close($curl);
-    }
-    header("Location: ?action=record&session_date=$session_date");
-    exit;
-}
-
+// Save manual attendance status per class period
 if ($action === 'save_attendance' && in_array($role, ['teacher', 'admin']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $student_id = (int) ($_POST['student_id'] ?? 0);
     $session_date = $_POST['session_date'] ?? '';
@@ -160,10 +116,7 @@ if ($action === 'save_attendance' && in_array($role, ['teacher', 'admin']) && $_
             $status = $statuses[$period] ?? 'absent';
             if (!in_array($status, ['present', 'absent'])) continue;
 
-            $stmt = $pdo->prepare("
-                SELECT id FROM attendance
-                WHERE student_id = ? AND session_date = ? AND period = ?
-            ");
+            $stmt = $pdo->prepare("SELECT id FROM attendance WHERE student_id = ? AND session_date = ? AND period = ?");
             $stmt->execute([$student_id, $session_date, $period]);
             $attendance_id = $stmt->fetchColumn();
 
@@ -171,10 +124,7 @@ if ($action === 'save_attendance' && in_array($role, ['teacher', 'admin']) && $_
                 $stmt = $pdo->prepare("UPDATE attendance SET status = ? WHERE id = ?");
                 $stmt->execute([$status, $attendance_id]);
             } else {
-                $stmt = $pdo->prepare("
-                    INSERT INTO attendance (student_id, session_date, period, status)
-                    VALUES (?, ?, ?, ?)
-                ");
+                $stmt = $pdo->prepare("INSERT INTO attendance (student_id, session_date, period, status) VALUES (?, ?, ?, ?)");
                 $stmt->execute([$student_id, $session_date, $period, $status]);
             }
         }
@@ -186,344 +136,308 @@ if ($action === 'save_attendance' && in_array($role, ['teacher', 'admin']) && $_
 $attendance_records = [];
 if ($role === 'student' || (in_array($role, ['teacher', 'admin']) && $student_id)) {
     $target_id = $role === 'student' ? $user_id : $student_id;
-    $stmt = $pdo->prepare("
-        SELECT session_date, period, status
-        FROM attendance
-        WHERE student_id = ? AND session_date = ?
-        ORDER BY session_date DESC, period
-    ");
+    $stmt = $pdo->prepare("SELECT session_date, period, status FROM attendance WHERE student_id = ? AND session_date = ? ORDER BY period");
     $stmt->execute([$target_id, $session_date]);
     $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     if (empty($records) && !is_weekend($session_date)) {
         for ($period = 1; $period <= 4; $period++) {
-            $attendance_records[] = [
-                'session_date' => $session_date,
-                'period' => $period,
-                'status' => 'absent'
-            ];
+            $attendance_records[] = ['session_date' => $session_date, 'period' => $period, 'status' => 'absent'];
         }
     } elseif (is_weekend($session_date)) {
         for ($period = 1; $period <= 4; $period++) {
-            $attendance_records[] = [
-                'session_date' => $session_date,
-                'period' => $period,
-                'status' => 'weekend'
-            ];
+            $attendance_records[] = ['session_date' => $session_date, 'period' => $period, 'status' => 'weekend'];
         }
     } else {
         $attendance_records = $records;
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>حضور و غیاب</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>مدیریت حضور و غیاب | سامانه یادگیری</title>
+    <link href="../../css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
+    <link href="../../css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../../css/fontawesome.min.css">
-    <link rel="stylesheet" href="../assets/style.css">
+    <link rel="icon" type="image/png" sizes="16x16" href="../../images/favicon.png">
+
     <style>
-        @font-face {
-            font-family: 'font-iran-normal';
-            src: url('../../css/font-iran-normal.woff2') format('woff2'),
-                 url('../../css/font-iran-normal.ttf') format('truetype');
-            font-weight: normal;
-            font-style: normal;
+        :root {
+            --bg-dark: #090d16;
+            --bg-card: rgba(17, 24, 39, 0.8);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --primary-accent: #6366f1;
+            --text-main: #f8fafc;
+            --: #94a3b8;
         }
+
+        * { font-family: 'Vazirmatn', sans-serif; box-sizing: border-box; }
+
         body {
-            font-family: 'font-iran-normal', sans-serif;
+            background-color: var(--bg-dark);
+            background-image: radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.12) 0px, transparent 50%);
+            color: var(--text-main);
             min-height: 100vh;
             padding-bottom: 80px;
+            margin: 0;
         }
-        footer {
-            position: fixed;
-            bottom: 0;
-            width: 98%;
-            right: 1%;
-            margin: auto;
-            text-align: center;
-            padding: 12px 0;
-            background-color: #1e1e1e;
-            color: #ffffff;
-            font-weight: bold;
-            box-shadow: 0 -2px 10px rgba(1, 238, 255, 0.5);
-            border-radius: 12px 12px 0 0;
+
+        .topbar {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        footer a {
-            color: #01eeff;
-            text-decoration: none;
-            transition: color 0.3s;
+
+        .card-custom {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            backdrop-filter: blur(12px);
+            padding: 24px;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
         }
-        footer a:hover {
-            color: #00ccdd;
+
+        .btn-gradient-primary {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+            border: none !important;
+            color: white !important;
+            border-radius: 10px !important;
+            padding: 10px 18px !important;
+            font-weight: 600 !important;
         }
-        .table-container {
-            @apply overflow-x-auto shadow-lg rounded-lg bg-white;
+
+        .form-control, .form-select {
+            background-color: #0f172a !important;
+            border: 1px solid var(--border-color) !important;
+            color: #f8fafc !important;
+            border-radius: 10px !important;
+            padding: 10px 14px;
         }
-        th, td {
-            @apply py-4 px-6 text-right border-b border-gray-200;
+
+        table {
+            background: var(--bg-card);
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            color: var(--text-main) !important;
         }
-        th {
-            @apply bg-gradient-to-r from-blue-300 to-blue-600 text-white font-bold;
-        }
-        tr:hover {
-            @apply bg-gray-50;
-        }
-        .form-container {
-            @apply bg-white p-6 rounded-lg shadow-lg mb-6 border border-gray-200;
-        }
-        .btn {
-            @apply px-4 py-2 rounded-lg text-white font-semibold transition duration-300 flex items-center justify-center gap-2;
-        }
-        .btn-primary {
-            @apply bg-gradient-to-r from-blue-700 to-blue-900 hover:from-blue-700 hover:to-blue-900;
-        }
-        .btn-secondary {
-            @apply bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900;
-        }
-        .btn-success {
-            @apply bg-gradient-to-r from-green-600 to-green-800 hover:from-green-700 hover:to-green-900;
-        }
-        .status-present {
-            @apply text-green-600 font-semibold;
-        }
-        .status-absent {
-            @apply text-red-600 font-semibold;
-        }
-        .status-weekend {
-            @apply text-gray-600 font-semibold;
-        }
-        .modal {
-            @apply fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden;
-        }
+
+        table thead { background: #0f172a; }
+        table th { color: var(--); font-weight: 600; padding: 14px; border-bottom: 1px solid var(--border-color); }
+        table td { padding: 12px 14px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+
         .modal-content {
-            @apply bg-white p-6 rounded-lg shadow-lg w-full max-w-md;
+            background-color: #0f172a;
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            color: var(--text-main);
         }
-        @media (max-width: 640px) {
-            .form-container {
-                @apply p-4;
-            }
-            th, td {
-                @apply py-2 px-3 text-sm;
-            }
-            .btn {
-                @apply text-sm px-3 py-1;
-            }
+
+        .modal-header, .modal-footer { border-color: var(--border-color); }
+
+        footer {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            text-align: center; padding: 12px;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(10px);
+            color: var(--); font-size: 0.8rem;
+            border-top: 1px solid var(--border-color);
+            z-index: 99;
         }
+
+        footer a { color: #818cf8; text-decoration: none; }
     </style>
 </head>
 <body>
-    <div class="container mx-auto p-4 sm:p-6 md:p-8">
-        <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 bg-gradient-to-r from-blue-300 to-blue-800 text-white p-4 rounded-lg shadow-md">حضور و غیاب</h2>
+    <div class="topbar">
+        <span class="fw-bold fs-5"><i class="fas fa-calendar-check text-primary me-2"></i> حضور و غیاب</span>
+        <a href="../index.php" class="btn btn-sm btn-outline-light rounded-pill px-3"><i class="fas fa-arrow-right me-1"></i> بازگشت به داشبورد</a>
+    </div>
 
-        <div class="form-container mb-6">
-            <form method="GET">
-                <label for="session_date" class="block text-gray-700 font-medium mb-2">انتخاب تاریخ</label>
-                <select name="session_date" class="border rounded p-2 w-full sm:w-64 focus:ring-2 focus:ring-blue-600" onchange="this.form.submit()">
-                    <option value="">انتخاب تاریخ</option>
-                    <?php foreach ($dates as $date): ?>
-                        <option value="<?php echo $date['gregorian']; ?>" <?php echo $date['gregorian'] == $session_date ? 'selected' : ''; ?>>
-                            <?php echo $date['jalali']; ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <input type="hidden" name="action" value="<?php echo $role === 'student' ? 'view' : 'record'; ?>">
-                <input type="hidden" name="student_id" value="<?php echo $student_id; ?>">
-            </form>
-        </div>
-
-        <?php if (in_array($role, ['teacher', 'admin'])): ?>
-            <div class="form-container">
-                <form method="GET">
-                    <label for="student_id" class="block text-gray-700 font-medium mb-2">دانش‌آموز</label>
-                    <select name="student_id" class="border rounded p-2 w-full sm:w-64 focus:ring-2 focus:ring-blue-600" onchange="this.form.submit()">
-                        <option value="">انتخاب دانش‌آموز</option>
-                        <?php foreach ($students as $student): ?>
-                            <option value="<?php echo $student['id']; ?>" <?php echo $student['id'] == $student_id ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($student['name']); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                    <input type="hidden" name="action" value="record">
-                    <input type="hidden" name="session_date" value="<?php echo $session_date; ?>">
-                </form>
-            </div>
-        <?php endif; ?>
-
-        <?php if ($action === 'record' && in_array($role, ['teacher', 'admin']) && $student_id): ?>
-            <h3 class="text-xl font-semibold text-gray-700 mb-4">ثبت حضور و غیاب</h3>
-            <div class="form-container">
-                <form method="POST" action="?action=save_attendance">
-                    <input type="hidden" name="student_id" value="<?php echo $student_id; ?>">
-                    <div class="mb-4">
-                        <label for="session_date" class="block text-gray-700 font-medium">تاریخ</label>
-                        <input type="date" name="session_date" class="border rounded p-2 w-full sm:w-64 focus:ring-2 focus:ring-blue-600" value="<?php echo $session_date; ?>" required readonly>
-                    </div>
-                    <?php for ($period = 1; $period <= 4; $period++): ?>
-                        <?php
-                        $stmt = $pdo->prepare("SELECT status FROM attendance WHERE student_id = ? AND session_date = ? AND period = ?");
-                        $stmt->execute([$student_id, $session_date, $period]);
-                        $current_status = $stmt->fetchColumn() ?: (is_weekend($session_date) ? 'weekend' : 'absent');
-                        ?>
-                        <div class="mb-4">
-                            <label class="block text-gray-700 font-medium">زنگ <?php echo $period; ?></label>
-                            <div class="flex space-x-4 space-x-reverse">
-                                <label class="flex items-center">
-                                    <input type="radio" name="status[<?php echo $period; ?>]" value="present" <?php echo $current_status === 'present' ? 'checked' : ''; ?> class="mr-2" <?php echo $current_status === 'weekend' ? 'disabled' : ''; ?>>
-                                    <span class="status-present">حاضر</span>
-                                </label>
-                                <label class="flex items-center">
-                                    <input type="radio" name="status[<?php echo $period; ?>]" value="absent" <?php echo $current_status === 'absent' ? 'checked' : ''; ?> class="mr-2" <?php echo $current_status === 'weekend' ? 'disabled' : ''; ?>>
-                                    <span class="status-absent">غایب</span>
-                                </label>
-                            </div>
-                        </div>
-                    <?php endfor; ?>
-                    <div class="flex space-x-4 space-x-reverse">
-                        <button type="submit" class="btn btn-primary" <?php echo is_weekend($session_date) ? 'disabled' : ''; ?>>
-                            <i class="fas fa-save"></i> ذخیره
-                        </button>
-                        <a href="?action=record&student_id=<?php echo $student_id; ?>&session_date=<?php echo $session_date; ?>" class="btn btn-secondary">
-                            <i class="fas fa-times"></i> لغو
-                        </a>
-                    </div>
-                </form>
-            </div>
-        <?php endif; ?>
-
-        <?php if ($role === 'admin'): ?>
-            <div class="flex space-x-4 space-x-reverse">
-                <button onclick="openSmsModal()" class="btn btn-primary mt-4"><i class="fas fa-cog"></i> تنظیمات پیامک</button>
-                <button onclick="openCardModal()" class="btn btn-primary mt-4"><i class="fas fa-id-card"></i> ثبت کارت RFID</button>
-                <a href="?action=send_sms_absentees&session_date=<?php echo $session_date; ?>" class="btn btn-success mt-4"><i class="fas fa-paper-plane"></i> ارسال پیام به غایبین</a>
-                <a href="logs.php" class="btn btn-secondary mt-4"><i class="fas fa-list"></i> لاگ‌های دستگاه</a>
-            </div>
-
-            <div id="smsModal" class="modal hidden">
-                <div class="modal-content">
-                    <h3 class="text-xl font-semibold text-gray-700 mb-4">تنظیمات پیامک</h3>
-                    <form method="POST" action="?action=save_sms_settings">
+    <div class="container mt-4">
+        <!-- Date and Student Filters -->
+        <div class="card-custom mb-4">
+            <div class="row g-3 align-items-center">
+                <div class="col-md-6">
+                    <form method="GET">
+                        <label class="form-label ">انتخاب تاریخ</label>
+                        <select name="session_date" class="form-select" onchange="this.form.submit()">
+                            <?php foreach ($dates as $d): ?>
+                                <option value="<?php echo $d['gregorian']; ?>" <?php echo $d['gregorian'] == $session_date ? 'selected' : ''; ?>>
+                                    <?php echo $d['jalali']; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <input type="hidden" name="action" value="<?php echo $role === 'student' ? 'view' : 'record'; ?>">
                         <input type="hidden" name="student_id" value="<?php echo $student_id; ?>">
-                        <input type="hidden" name="session_date" value="<?php echo $session_date; ?>">
-                        <div class="mb-4">
-                            <label for="sms_username" class="block text-gray-700 font-medium">نام کاربری</label>
-                            <input type="text" name="sms_username" class="border rounded p-2 w-full" value="<?php echo htmlspecialchars($sms_settings['sms_username']); ?>" required>
-                        </div>
-                        <div class="mb-4">
-                            <label for="sms_password" class="block text-gray-700 font-medium">رمز عبور</label>
-                            <input type="password" name="sms_password" class="border rounded p-2 w-full" value="<?php echo htmlspecialchars($sms_settings['sms_password']); ?>" required>
-                        </div>
-                        <div class="mb-4">
-                            <label for="sms_source" class="block text-gray-700 font-medium">شماره فرستنده</label>
-                            <input type="text" name="sms_source" class="border rounded p-2 w-full" value="<?php echo htmlspecialchars($sms_settings['sms_source']); ?>" required>
-                        </div>
-                        <div class="mb-4">
-                            <label for="sms_template" class="block text-gray-700 font-medium">قالب پیام</label>
-                            <textarea name="sms_template" class="border rounded p-2 w-full" rows="4"><?php echo htmlspecialchars($sms_settings['sms_template']); ?></textarea>
-                            <p class="text-sm text-gray-600 mt-2">راهنما: از {name} برای نام، {date} برای تاریخ، {zangha} برای زنگ‌های غایب استفاده کنید. مثال: "دانش‌آموز {name} در تاریخ {date} زنگ‌های {zangha} غایب بود."</p>
-                        </div>
-                        <div class="flex space-x-4 space-x-reverse">
-                            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> ذخیره</button>
-                            <button type="button" onclick="closeSmsModal()" class="btn btn-secondary"><i class="fas fa-times"></i> بستن</button>
-                        </div>
                     </form>
                 </div>
-            </div>
 
-            <div id="cardModal" class="modal hidden">
-    <div class="modal-content">
-        <h3 class="text-xl font-semibold text-gray-700 mb-4">ثبت کارت RFID</h3>
-        <form method="POST" action="?action=register_card">
-            <input type="hidden" name="session_date" value="<?php echo $session_date; ?>">
-            <div class="mb-4">
-                <label for="student_id_card" class="block text-gray-700 font-medium">انتخاب دانش‌آموز</label>
-                <select name="student_id" id="student_id_card" class="border rounded p-2 w-full focus:ring-2 focus:ring-blue-600" required>
-                    <option value="">انتخاب دانش‌آموز</option>
-                    <?php foreach ($students as $student): ?>
-                        <option value="<?php echo $student['id']; ?>" <?php echo $student['id'] == $student_id ? 'selected' : ''; ?>>
-                            <?php echo htmlspecialchars($student['name']); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
+                <?php if (in_array($role, ['teacher', 'admin'])): ?>
+                    <div class="col-md-6">
+                        <form method="GET">
+                            <label class="form-label ">انتخاب دانش‌آموز</label>
+                            <select name="student_id" class="form-select" onchange="this.form.submit()">
+                                <option value="">انتخاب دانش‌آموز...</option>
+                                <?php foreach ($students as $stu): ?>
+                                    <option value="<?php echo $stu['id']; ?>" <?php echo $stu['id'] == $student_id ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($stu['name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <input type="hidden" name="action" value="record">
+                            <input type="hidden" name="session_date" value="<?php echo $session_date; ?>">
+                        </form>
+                    </div>
+                <?php endif; ?>
             </div>
-            <div class="mb-4">
-                <label for="ufid" class="block text-gray-700 font-medium">UFID کارت</label>
-                <input type="text" name="ufid" class="border rounded p-2 w-full" placeholder="مثال: A1B2C3D4" required>
-                <p class="text-sm text-gray-600 mt-2">کارت را نزدیک PN532 ببرید، UID را از لاگ‌های دستگاه (صفحه لاگ‌ها) کپی کنید.</p>
-            </div>
-            <div class="flex space-x-4 space-x-reverse">
-                <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> ثبت کارت</button>
-                <button type="button" onclick="closeCardModal()" class="btn btn-secondary"><i class="fas fa-times"></i> بستن</button>
-            </div>
-        </form>
-    </div>
-</div>
+        </div>
 
-            <script>
-                function openSmsModal() {
-                    document.getElementById('smsModal').classList.remove('hidden');
-                }
-                function closeSmsModal() {
-                    document.getElementById('smsModal').classList.add('hidden');
-                }
-                function openCardModal() {
-                    document.getElementById('cardModal').classList.remove('hidden');
-                }
-                function closeCardModal() {
-                    document.getElementById('cardModal').classList.add('hidden');
-                }
-            </script>
+        <!-- Admin Control Toolbar -->
+        <?php if ($role === 'admin'): ?>
+            <div class="d-flex flex-wrap gap-2 mb-4">
+                <button class="btn btn-gradient-primary btn-sm" data-bs-toggle="modal" data-bs-target="#smsModal"><i class="fas fa-cog me-1"></i> تنظیمات پیامک</button>
+                <button class="btn btn-gradient-primary btn-sm" data-bs-toggle="modal" data-bs-target="#cardModal"><i class="fas fa-id-card me-1"></i> ثبت کارت RFID</button>
+                <a href="?action=send_sms_absentees&session_date=<?php echo $session_date; ?>" class="btn btn-outline-success btn-sm"><i class="fas fa-paper-plane me-1"></i> ارسال پیامک به غایبین امروز</a>
+            </div>
         <?php endif; ?>
 
-        <?php if ($role === 'student' || ($action === 'view' && $student_id) || ($action === 'record' && $student_id)): ?>
-            <h3 class="text-xl font-semibold text-gray-700 mb-4 bg-gradient-to-r from-blue-300 to-blue-800 text-white p-3 rounded-lg shadow-md">
-                حضور و غیاب روز <?php echo to_jalali($session_date); ?>
-            </h3>
-            <div class="table-container">
-                <table class="w-full">
-                    <thead>
-                        <tr>
-                            <th>زنگ</th>
-                            <th>وضعیت</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($attendance_records as $record): ?>
+        <!-- Attendance Recording Panel -->
+        <?php if ($action === 'record' && in_array($role, ['teacher', 'admin']) && $student_id): ?>
+            <div class="card-custom mb-4">
+                <h5 class="mb-4 text-primary"><i class="fas fa-edit me-2"></i> ثبت وضعیت حضور و غیاب روز <?php echo to_jalali($session_date); ?></h5>
+                <form method="POST" action="?action=save_attendance">
+                    <input type="hidden" name="student_id" value="<?php echo $student_id; ?>">
+                    <input type="hidden" name="session_date" value="<?php echo $session_date; ?>">
+
+                    <div class="row g-3 mb-4">
+                        <?php for ($period = 1; $period <= 4; $period++): ?>
+                            <?php
+                            $stmt = $pdo->prepare("SELECT status FROM attendance WHERE student_id = ? AND session_date = ? AND period = ?");
+                            $stmt->execute([$student_id, $session_date, $period]);
+                            $curr_status = $stmt->fetchColumn() ?: (is_weekend($session_date) ? 'weekend' : 'absent');
+                            ?>
+                            <div class="col-md-3">
+                                <div class="p-3 border border-secondary rounded-3 text-center bg-dark bg-opacity-50">
+                                    <h6 class="text-light mb-3">زنگ <?php echo $period; ?></h6>
+                                    <div class="btn-group w-100" role="group">
+                                        <input type="radio" class="btn-check" name="status[<?php echo $period; ?>]" id="p_<?php echo $period; ?>_present" value="present" <?php echo $curr_status === 'present' ? 'checked' : ''; ?>>
+                                        <label class="btn btn-outline-success btn-sm" for="p_<?php echo $period; ?>_present">حاضر</label>
+
+                                        <input type="radio" class="btn-check" name="status[<?php echo $period; ?>]" id="p_<?php echo $period; ?>_absent" value="absent" <?php echo $curr_status === 'absent' ? 'checked' : ''; ?>>
+                                        <label class="btn btn-outline-danger btn-sm" for="p_<?php echo $period; ?>_absent">غایب</label>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endfor; ?>
+                    </div>
+                    <button type="submit" class="btn btn-gradient-primary"><i class="fas fa-save me-1"></i> ذخیره تغییرات</button>
+                </form>
+            </div>
+        <?php endif; ?>
+
+        <!-- Attendance Records Table -->
+        <?php if ($role === 'student' || ($student_id && count($attendance_records) > 0)): ?>
+            <div class="card-custom p-0">
+                <div class="table-responsive">
+                    <table class="table text-center align-middle m-0">
+                        <thead>
                             <tr>
-                                <td>زنگ <?php echo $record['period']; ?></td>
-                                <td class="<?php echo $record['status'] === 'present' ? 'status-present' : ($record['status'] === 'absent' ? 'status-absent' : 'status-weekend'); ?>">
-                                    <?php echo $record['status'] === 'present' ? 'حاضر' : ($record['status'] === 'absent' ? 'غایب' : 'تعطیلات آخر هفته'); ?>
-                                </td>
+                                <th>زنگ آموزشی</th>
+                                <th>وضعیت حضور و غیاب</th>
                             </tr>
-                        <?php endforeach; ?>
-                        <?php if (empty($attendance_records)): ?>
-                            <tr><td colspan="2" class="text-center py-4 text-gray-600">هیچ رکوردی ثبت نشده است.</td></tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-            <div class="mt-6 flex space-x-4 space-x-reverse">
-                <a href="../index.php" class="btn btn-secondary">
-                    <i class="fas fa-arrow-right"></i> بازگشت
-                </a>
-            </div>
-        <?php else: ?>
-            <p class="text-gray-700 p-4 rounded-lg shadow-md">لطفاً یک دانش‌آموز انتخاب کنید.</p>
-            <div class="mt-6">
-                <a href="../index.php" class="btn btn-secondary">
-                    <i class="fas fa-arrow-right"></i> بازگشت
-                </a>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($attendance_records as $rec): ?>
+                                <tr>
+                                    <td><strong>زنگ <?php echo $rec['period']; ?></strong></td>
+                                    <td>
+                                        <?php if ($rec['status'] === 'present'): ?>
+                                            <span class="badge bg-success bg-opacity-20 px-3 py-2">حاضر</span>
+                                        <?php elseif ($rec['status'] === 'absent'): ?>
+                                            <span class="badge bg-danger bg-opacity-20 px-3 py-2">غایب</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary bg-opacity-20 px-3 py-2">تعطیلات</span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         <?php endif; ?>
+    </div>
+
+    <!-- SMS Gateway Modal -->
+    <div class="modal fade" id="smsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-cog text-primary me-2"></i> تنظیمات پنل پیامک</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="?action=save_sms_settings">
+                    <div class="modal-body">
+                        <div class="mb-3"><label class="form-label">نام کاربری سامانه</label><input type="text" name="sms_username" class="form-control" value="<?php echo htmlspecialchars($sms_settings['sms_username'] ?? ''); ?>"></div>
+                        <div class="mb-3"><label class="form-label">رمز عبور</label><input type="password" name="sms_password" class="form-control" value="<?php echo htmlspecialchars($sms_settings['sms_password'] ?? ''); ?>"></div>
+                        <div class="mb-3"><label class="form-label">شماره خط فرستنده</label><input type="text" name="sms_source" class="form-control" value="<?php echo htmlspecialchars($sms_settings['sms_source'] ?? ''); ?>"></div>
+                        <div class="mb-3"><label class="form-label">قالب متن پیامک</label><textarea name="sms_template" class="form-control" rows="3"><?php echo htmlspecialchars($sms_settings['sms_template'] ?? ''); ?></textarea></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">انصراف</button>
+                        <button type="submit" class="btn btn-gradient-primary btn-sm">ذخیره تنظیمات</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- RFID Registration Modal -->
+    <div class="modal fade" id="cardModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-id-card text-warning me-2"></i> ثبت کارت RFID دانش‌آموز</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="?action=register_card">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">انتخاب دانش‌آموز</label>
+                            <select name="student_id" class="form-select" required>
+                                <option value="">انتخاب کنید...</option>
+                                <?php foreach ($students as $stu): ?>
+                                    <option value="<?php echo $stu['id']; ?>"><?php echo htmlspecialchars($stu['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">کد UFID کارت RFID</label>
+                            <input type="text" name="ufid" class="form-control" placeholder="مثلاً: A1B2C3D4" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">انصراف</button>
+                        <button type="submit" class="btn btn-gradient-primary btn-sm">ثبت کارت</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <footer>
-        برنامه نویسی شده توسط
-        <a href="https://aminmadani.ir" target="_blank">محمدامین مدنی محمدی</a>
+        سامانه مدیریت یادگیری | طراحی شده توسط <a href="https://aminmadani.ir" target="_blank">محمدامین مدنی محمدی</a>
     </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

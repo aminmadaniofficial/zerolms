@@ -1,13 +1,42 @@
 <?php
+/**
+ *     _____                    __   __  ___ _____
+ *    /__  /  ___  _________   / /  /  |/  // ___/
+ *      / /  / _ \/ ___/ __ \ / /  / /|_/ / \__ \ 
+ *     / /__/  __/ /  / /_/ // /__/ /  / / ___/ / 
+ *    /____/\___/_/   \____//____/_/  /_/ /____/  
+ * 
+ * ------------------------------------------------------------
+ *  System      : Zero LMS Core Engine
+ *  Author      : Amin Madani
+ *  Created     : 2026
+ *  Notice      : Unauthorized copying or modification of this file,
+ *                via any medium is strictly prohibited.
+ * ------------------------------------------------------------
+ */
+
 session_start();
 require_once '../db.php';
 
+/**
+ * Escape HTML input to prevent cross-site scripting (XSS).
+ * 
+ * @param string|null $string Standard text input
+ * @return string Escaped safe string
+ */
 function e($string) { return htmlspecialchars($string ?? '', ENT_QUOTES, 'UTF-8'); }
 
+// Include Jalali Date library if available in directory tree
 if (file_exists('../jdf.php')) {
     require_once '../jdf.php';
 }
 
+/**
+ * Format date string to Jalali Shamsi date format.
+ * 
+ * @param string $date_str Input Gregorian date string
+ * @return string Jalali formatted date string
+ */
 function toJalali($date_str) {
     if (empty($date_str)) return '';
     try {
@@ -26,24 +55,29 @@ function toJalali($date_str) {
     }
 }
 
+// Language and direction setup
 $lang = $_SESSION['lang'] ?? 'fa';
 $dir = $lang === 'fa' ? 'rtl' : 'ltr';
 
+// Pagination setup and query calculations
 $posts_per_page = 6; 
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
 $offset = ($page - 1) * $posts_per_page;
 
+// Fetch total number of posts to compute pagination pages
 $stmt = $pdo->query("SELECT COUNT(*) FROM posts");
 $total_posts = $stmt->fetchColumn();
 $total_pages = ceil($total_posts / $posts_per_page);
 
+// Fetch active paginated blog posts list
 $stmt = $pdo->prepare("SELECT id, title, content, author_name, image_path, created_at FROM posts ORDER BY created_at DESC LIMIT :limit OFFSET :offset");
 $stmt->bindValue(':limit', $posts_per_page, PDO::PARAM_INT);
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Page translations dictionary
 $t_page = [
     'fa' => ['title' => 'اخبار و مقالات', 'home' => 'خانه', 'read' => 'ادامه مطلب', 'author' => 'نویسنده:', 'empty' => 'هیچ پستی یافت نشد.'],
     'en' => ['title' => 'News & Blog', 'home' => 'Home', 'read' => 'Read More', 'author' => 'Author:', 'empty' => 'No posts found.']
@@ -64,6 +98,7 @@ $t_page = [
 </head>
 <body class="text-slate-700">
 
+    <!-- Blog Section Header -->
     <header class="bg-white shadow-sm sticky top-0 z-50 py-4">
         <div class="container mx-auto px-4 max-w-7xl flex justify-between items-center">
             <a href="../index.php" class="flex items-center gap-3">
@@ -76,6 +111,7 @@ $t_page = [
         </div>
     </header>
 
+    <!-- Main Content Grid -->
     <main class="py-16">
         <div class="container mx-auto px-4 max-w-7xl">
             <h1 class="text-4xl font-black text-slate-800 mb-12 text-center"><?= $t_page['title'] ?></h1>
@@ -114,7 +150,7 @@ $t_page = [
                 <?php endif; ?>
             </div>
 
-            <!-- Pagination -->
+            <!-- Dynamic Pagination Links Container -->
             <?php if ($total_pages > 1): ?>
                 <div class="flex justify-center items-center gap-2 mt-16">
                     <?php if ($page > 1): ?>

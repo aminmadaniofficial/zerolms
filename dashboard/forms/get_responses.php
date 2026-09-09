@@ -1,4 +1,20 @@
 <?php
+/**
+ *     _____                    __   __  ___ _____
+ *    /__  /  ___  _________   / /  /  |/  // ___/
+ *      / /  / _ \/ ___/ __ \ / /  / /|_/ / \__ \ 
+ *     / /__/  __/ /  / /_/ // /__/ /  / / ___/ / 
+ *    /____/\___/_/   \____//____/_/  /_/ /____/  
+ * 
+ * ------------------------------------------------------------
+ *  System      : Zero LMS Core Engine
+ *  Author      : Amin Madani
+ *  Created     : 2026
+ *  Notice      : Unauthorized copying or modification of this file,
+ *                via any medium is strictly prohibited.
+ * ------------------------------------------------------------
+ */
+
 session_start();
 require_once '../../db.php';
 
@@ -44,20 +60,20 @@ foreach ($questions as $index => $question) {
     }
     $options = array_map('strval', $question['options'] ?? []);
     $counts = array_fill_keys($options, 0);
-    foreach ($responses as $response) {
-        $responses = json_decode($response['response'], true);
+    foreach ($responses as $row) {
+        $decoded_data = json_decode($row['response'], true);
         if (json_last_error() !== JSON_ERROR_NONE) {
             continue; 
         }
-        $response = $responses[$index] ?? null;
-        if ($question['type'] === 'checkbox' && is_array($response)) {
-            foreach ($response as $val) {
-                if (isset($counts[$val])) {
-                    $counts[$val]++;
+        $val = $decoded_data[$index] ?? null;
+        if ($question['type'] === 'checkbox' && is_array($val)) {
+            foreach ($val as $item) {
+                if (isset($counts[$item])) {
+                    $counts[$item]++;
                 }
             }
-        } elseif (isset($counts[$response])) {
-            $counts[$response]++;
+        } elseif (isset($counts[$val])) {
+            $counts[$val]++;
         }
     }
     $result['questions'][$index] = [

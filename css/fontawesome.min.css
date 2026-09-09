@@ -7,37 +7,49 @@
     font-family: var(--fa-style-family, "Font Awesome 6 Pro");
     font-weight: var(--fa-style, 900)
 }
-/*pesrian fonts*/
+/* Persian Fonts Optimization - Fixed for Google Lighthouse */
 @font-face {
-    font-family:'iran-yekan-bold';
-  src: url(../fonts/IRANYekanBlack.ttf);
-  }
-  @font-face {
-    font-family: 'iran-yekan-thin';
-  src: url(../fonts/IRANYekanThin.ttf);
-  }
-  @font-face {
-    font-family: 'iran-yekan-medium';
-  src: url(../fonts/IRANYekanMedium.ttf); 
-  }
-  @font-face {
-  font-family: 'font-iran-normal';
-  src: url(../fonts/IRANSansWeb_Medium.woff);
-  }
-  @font-face {
-  font-family: 'font-iran-light';
-  src: url(../fonts/IRANSansWeb_Light.woff);
-  } 
-  @font-face {
-  font-family: 'font-iran-bold';
-  src: url(../fonts/IRANSansWeb_Bold.woff);
-  }
-  @font-face {
-  font-family: 'font-iran-ultralight';
-  src: url(../fonts/IRANSansWeb_UltraLight.woff);
-  }
-  /*end fonst*/
+    font-family: 'iran-yekan-bold';
+    src: url('../fonts/IRANYekanBlack.ttf') format('truetype');
+    font-display: swap;
+}
 
+@font-face {
+    font-family: 'iran-yekan-thin';
+    src: url('../fonts/IRANYekanThin.ttf') format('truetype');
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'iran-yekan-medium';
+    src: url('../fonts/IRANYekanMedium.ttf') format('truetype');
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'font-iran-normal';
+    src: url('../fonts/IRANSansWeb_Medium.woff') format('woff');
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'font-iran-light';
+    src: url('../fonts/IRANSansWeb_Light.woff') format('woff');
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'font-iran-bold';
+    src: url('../fonts/IRANSansWeb_Bold.woff') format('woff');
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'font-iran-ultralight';
+    src: url('../fonts/IRANSansWeb_UltraLight.woff') format('woff');
+    font-display: swap;
+}
+/* End Persian Fonts */
 .fa,
 .fa-brands,
 .fa-duotone,

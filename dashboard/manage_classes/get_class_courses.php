@@ -1,8 +1,15 @@
 <?php
+session_start();
 header('Content-Type: application/json');
 require_once '../../db.php';
 
-$class_id = (int)$_GET['class_id'] ?? 0;
+if (!isset($_SESSION['user_id'])) {
+    http_response_code(403);
+    echo json_encode(['error' => 'دسترسی غیرمجاز']);
+    exit;
+}
+
+$class_id = (int)($_GET['class_id'] ?? 0);
 
 if ($class_id <= 0) {
     echo json_encode(['courses' => []]);
