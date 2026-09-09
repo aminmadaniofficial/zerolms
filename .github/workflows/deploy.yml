@@ -1,49 +1,56 @@
-name: Deploy ZeroLMS to Bahonar Karaj Server
+# ==============================================================================
+# DEPLOY WORKFLOW TEMPORARILY DISABLED
+# Automatically connects via SSH to Bahonar Karaj Server and executes git pull & docker compose
+# To re-enable, uncomment the lines below.
+# ==============================================================================
 
-on:
-  push:
-    branches:
-      - main
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
-
-    - name: Executing remote SSH commands to deploy
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.SERVER_IP }}
-        username: ${{ secrets.SERVER_USER }}
-        key: ${{ secrets.SERVER_SSH_KEY }}
-        port: 3939 
-        script: |
-          cd /var/www/bahonarkaraj.ir/html
-          
-          # تنظیم پوشه به عنوان دایرکتوری امن برای گیت سرور
-          git config --global --add safe.directory /var/www/bahonarkaraj.ir/html
-          
-          # اگر گیت از قبل ست نشده، آن را بساز و این بار با آدرس SSH متصل کن
-          if [ ! -d ".git" ]; then
-            git init
-            git remote add origin git@github.com:aminmadaniofficial/zerolms.git
-          else
-            # مطمئن می‌شویم آدرس ریموت حتماً روی SSH ست شده باشد
-            git remote set-url origin git@github.com:aminmadaniofficial/zerolms.git
-          fi
-          
-          # دریافت کدهای پرایوت با استفاده از کلید SSH سرور
-          git fetch origin
-          git reset --hard origin/main
-          
-          # اجرای داکر کامپوز با ساختار قدیمی (تست هر دو حالت برای گارانتی اجرا)
-          if command -v docker-compose &> /dev/null; then
-            docker-compose down || true
-            docker-compose up -d --build
-          else
-            docker compose down || true
-            docker compose up -d --build
-          fi
+# name: Deploy ZeroLMS to Bahonar Karaj Server
+# 
+# on:
+#   push:
+#     branches:
+#       - main
+#       - master
+# 
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+# 
+#     steps:
+#     - name: Checkout Code
+#       uses: actions/checkout@v4
+# 
+#     - name: Executing remote SSH commands to deploy
+#       uses: appleboy/ssh-action@master
+#       with:
+#         host: ${{ secrets.SERVER_IP }}
+#         username: ${{ secrets.SERVER_USER }}
+#         key: ${{ secrets.SERVER_SSH_KEY }}
+#         port: 3939 
+#         script: |
+#           cd /var/www/bahonarkaraj.ir/html
+#           
+#           # تنظیم پوشه به عنوان دایرکتوری امن برای گیت سرور
+#           git config --global --add safe.directory /var/www/bahonarkaraj.ir/html
+#           
+#           # اگر گیت از قبل ست نشده، آن را بساز و این بار با آدرس SSH متصل کن
+#           if [ ! -d ".git" ]; then
+#             git init
+#             git remote add origin git@github.com:aminmadaniofficial/zerolms.git
+#           else
+#             # مطمئن می‌شویم آدرس ریموت حتماً روی SSH ست شده باشد
+#             git remote set-url origin git@github.com:aminmadaniofficial/zerolms.git
+#           fi
+#           
+#           # دریافت کدهای پرایوت با استفاده از کلید SSH سرور
+#           git fetch origin
+#           git reset --hard origin/main
+#           
+#           # اجرای داکر کامپوز با ساختار قدیمی (تست هر دو حالت برای گارانتی اجرا)
+#           if command -v docker-compose &> /dev/null; then
+#             docker-compose down || true
+#             docker-compose up -d --build
+#           else
+#             docker compose down || true
+#             docker compose up -d --build
+#           fi
