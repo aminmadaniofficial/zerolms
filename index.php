@@ -320,6 +320,12 @@ $t = $i18n[$lang];
     <meta name="keywords" content="<?php echo e($t['seo']['keywords']); ?>">
     <meta name="author" content="Amin Madani">
     <link rel="icon" type="image/png" href="./images/logo.png">
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#1e3c72">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="باهنر ۳">
+    <link rel="apple-touch-icon" href="./images/icon-192.png">
     
     <!-- Resource Preconnection -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
