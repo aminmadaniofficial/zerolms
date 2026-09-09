@@ -1,12 +1,27 @@
 <?php
+/**
+ *     _____                    __   __  ___ _____
+ *    /__  /  ___  _________   / /  /  |/  // ___/
+ *      / /  / _ \/ ___/ __ \ / /  / /|_/ / \__ \ 
+ *     / /__/  __/ /  / /_/ // /__/ /  / / ___/ / 
+ *    /____/\___/_/   \____//____/_/  /_/ /____/  
+ * 
+ * ------------------------------------------------------------
+ *  System      : Zero LMS Core Engine
+ *  Author      : Amin Madani
+ *  Created     : 2026
+ *  Notice      : Unauthorized copying or modification of this file,
+ *                via any medium is strictly prohibited.
+ * ------------------------------------------------------------
+ */
+
 session_start();
 require_once '../../db.php';
 require_once '../../log.php';
 date_default_timezone_set('Asia/Tehran');
 
-
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    header("Location: ../../login");
+    header("Location: ../../login/");
     exit;
 }
 
@@ -18,7 +33,7 @@ $csrf_token = $_SESSION['csrf_token'];
 $form_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $form = null;
 if ($form_id > 0) {
-    $stmt = $pdo->prepare("SELECT title, content FROM forms WHERE id = ? AND created_by = ?");
+    $stmt = $pdo->prepare("SELECT title, content, logo_url, start_date, end_date FROM forms WHERE id = ? AND created_by = ?");
     $stmt->execute([$form_id, $_SESSION['user_id']]);
     $form = $stmt->fetch(PDO::FETCH_ASSOC);
 }
@@ -26,7 +41,7 @@ if ($form_id > 0) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_form') {
     $form_id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
     if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
-        die(json_encode(['success' => false, 'error' => 'خطای CSRF']));
+        die(json_encode(['success' => false, 'error' => 'خطای امنیت CSRF']));
     }
     $title = trim($_POST['title'] ?? '');
     $description = $_POST['description'] ?? '';
@@ -37,7 +52,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         exit;
     }
 
-    
     $questions = [];
     foreach ($raw_questions as $index => $q) {
         $questions[$index] = [
@@ -61,37 +75,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         'questions' => $questions
     ], JSON_UNESCAPED_UNICODE);
 
-    if (json_last_error() !== JSON_ERROR_NONE) {
-        echo json_encode(['success' => false, 'error' => 'خطا در تولید JSON: ' . json_last_error_msg()]);
-        exit;
+    $logo_url = $form['logo_url'] ?? null;
+    require_once '../../upload_security.php';
+    if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
+        $dir = "../../Uploads/logos/";
+        list($success, $filename_or_err, $dest) = store_safe_upload(
+            $_FILES['logo'],
+            $dir,
+            ['jpg', 'jpeg', 'png', 'webp', 'svg'],
+            ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'],
+            'logo_'
+        );
+        if ($success) {
+            $logo_url = 'Uploads/logos/' . $filename_or_err;
+        }
     }
-    
-
-$logo_url = null;
 
     try {
         $pdo->beginTransaction();
-        $start_date = $_POST['start_date'] ? $_POST['start_date'] : null;
-        $end_date = $_POST['end_date'] ? $_POST['end_date'] : null;
-        if (!empty($_FILES['logo']['name'])) {
-            $target_dir = "../../uploads/logos/";
-            $logo_url = $target_dir . basename($_FILES['logo']['name']);
-            move_uploaded_file($_FILES['logo']['tmp_name'], $logo_url);
-        }
+        $start_date = !empty($_POST['start_date']) ? $_POST['start_date'] : null;
+        $end_date = !empty($_POST['end_date']) ? $_POST['end_date'] : null;
+
         if ($form_id > 0) {
-            $stmt = $pdo->prepare("UPDATE forms SET title = ?, content = ?, logo_url = ? , start_date = ?, end_date = ? WHERE id = ? AND created_by = ?");
-            $stmt->execute([$title, $content,$logo_url, $start_date, $end_date, $form_id, $_SESSION['user_id']]);
-            
-            $stmt = $pdo->prepare("SELECT code FROM forms WHERE id = ?");
-            $stmt->execute([$form_id]);
-            $code = $stmt->fetchColumn();
-            addLog($pdo, $_SESSION['user_id'], 'ویرایش فرم', 'فرم', $form_id);
+            $stmt = $pdo->prepare("UPDATE forms SET title = ?, content = ?, logo_url = ?, start_date = ?, end_date = ? WHERE id = ? AND created_by = ?");
+            $stmt->execute([$title, $content, $logo_url, $start_date, $end_date, $form_id, $_SESSION['user_id']]);
+            $code = $pdo->query("SELECT code FROM forms WHERE id = $form_id")->fetchColumn();
+            addLog($pdo, $_SESSION['user_id'], 'ویرایش فرم', 'مدیریت فرم‌ها', $form_id);
         } else {
-            $code = bin2hex(random_bytes(16)); 
-            $stmt = $pdo->prepare("INSERT INTO forms (title, code, content , logo_url, start_date, end_date, created_by, created_at) VALUES (?, ?,?, ?, ?, ?, ?, NOW())");
-            $stmt->execute([$title, $code, $content,$logo_url, $start_date, $end_date, $_SESSION['user_id']]);
+            $code = bin2hex(random_bytes(16));
+            $stmt = $pdo->prepare("INSERT INTO forms (title, code, content, logo_url, start_date, end_date, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())");
+            $stmt->execute([$title, $code, $content, $logo_url, $start_date, $end_date, $_SESSION['user_id']]);
             $form_id = $pdo->lastInsertId();
-            addLog($pdo, $_SESSION['user_id'], 'ساخت فرم', 'فرم', $form_id);
+            addLog($pdo, $_SESSION['user_id'], 'ساخت فرم', 'مدیریت فرم‌ها', $form_id);
         }
         $pdo->commit();
         echo json_encode(['success' => true, 'message' => 'فرم با موفقیت ذخیره شد', 'code' => $code, 'form_id' => $form_id]);
@@ -102,460 +117,228 @@ $logo_url = null;
     exit;
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>فرم‌ساز</title>
+    <title>فرم‌ساز | سامانه یادگیری</title>
     <link href="../../css/bootstrap.rtl.min.css" rel="stylesheet">
-    
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
     <link href="../../css/all.min.css" rel="stylesheet">
-    <link href="https://vazir-fonts.ir/v1.0.0/vazir.css" rel="stylesheet">
     <link rel="stylesheet" href="../../css/fontawesome.min.css">
-    <link rel="stylesheet" href="../assets/style.css">
-    <script src="../../js/tinymce.min.js" referrerpolicy="origin"></script>
+    <link rel="icon" type="image/png" sizes="16x16" href="../../images/favicon.png">
+
     <style>
-        .form-builder { max-width: 900px; margin: auto; }
-        .question-types { margin-bottom: 20px; }
-        .question-types button { margin: 5px; }
-        .question-item { border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; background: var(--card-bg); }
-        .question-item .form-control { margin-bottom: 10px; }
-        .option-list .input-group { margin-bottom: 10px; }
-        .option-list .btn-remove-option { margin-left: 5px; }
-        .question-actions { margin-top: 10px; }
-        .tox-tinymce { border-radius: 8px; }
-        .question-item.dragging {
-            opacity: 0.5;
-            border: 2px dashed #007bff;
+        :root {
+            --bg-dark: #090d16;
+            --bg-card: rgba(17, 24, 39, 0.85);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --primary-accent: #6366f1;
         }
-        .question-item:hover {
-            cursor: move;
+
+        * { font-family: 'Vazirmatn', sans-serif; box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-dark);
+            background-image: radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.12) 0px, transparent 50%);
+            color: #f8fafc;
+            min-height: 100vh;
+            padding-bottom: 80px;
+            margin: 0;
         }
+
+        .topbar {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-custom {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            backdrop-filter: blur(12px);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .btn-gradient-primary {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+            border: none !important;
+            color: #ffffff !important;
+            border-radius: 10px !important;
+            padding: 10px 20px !important;
+            font-weight: 600 !important;
+        }
+
+        .form-control, .form-select {
+            background-color: #0f172a !important;
+            border: 1px solid var(--border-color) !important;
+            color: #f8fafc !important;
+            border-radius: 10px !important;
+            padding: 10px 14px;
+        }
+
+        .question-item {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 15px;
+        }
+
+        .modal-content { background-color: #0f172a; border: 1px solid var(--border-color); color: #f8fafc; }
+
+        footer {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            text-align: center; padding: 12px;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(10px);
+            color: #94a3b8; font-size: 0.8rem;
+            border-top: 1px solid var(--border-color);
+            z-index: 99;
+        }
+
+        footer a { color: #818cf8; text-decoration: none; }
     </style>
 </head>
 <body>
     <div class="topbar">
-        <span><a href="manage_forms.php" class="text-white"><i class="fas fa-arrow-right"></i> بازگشت به مدیریت فرم‌ها</a></span>
-        <span>فرم‌ساز</span>
+        <span class="fw-bold fs-5" style="color:#f8fafc;"><i class="fas fa-tools me-2" style="color:#6366f1;"></i> <?php echo $form_id > 0 ? 'ویرایش فرم' : 'ساخت فرم جدید'; ?></span>
+        <a href="manage_forms.php" class="btn btn-sm btn-outline-light rounded-pill px-3"><i class="fas fa-arrow-right me-1"></i> بازگشت به لیست فرم‌ها</a>
     </div>
-    <div class="container mt-4 form-builder">
-        <h3><?php echo $form_id > 0 ? 'ویرایش فرم' : 'ساخت فرم جدید'; ?></h3>
+
+    <div class="container mt-4" style="max-width: 900px;">
         <div id="formMessage"></div>
-        <form id="formBuilderForm">
+        <form id="formBuilderForm" enctype="multipart/form-data">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
             <input type="hidden" name="action" value="save_form">
             <input type="hidden" name="id" value="<?php echo $form_id; ?>">
-            <div class="mb-3">
-                <label for="formTitle" class="form-label">عنوان فرم</label>
-                <input type="text" class="form-control" id="formTitle" name="title" value="<?php echo htmlspecialchars($form['title'] ?? ''); ?>" required>
+
+            <div class="card-custom">
+                <h5 class="mb-3" style="color:#a855f7;">تنظیمات اصلی فرم</h5>
+                <div class="mb-3">
+                    <label class="form-label" style="color:#f8fafc;">عنوان فرم</label>
+                    <input type="text" class="form-control" name="title" value="<?php echo htmlspecialchars($form['title'] ?? ''); ?>" required placeholder="عنوان فرم را وارد کنید...">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" style="color:#f8fafc;">توضیحات فرم</label>
+                    <textarea class="form-control" name="description" rows="3" placeholder="توضیحات کلی برای پاسخ‌دهندگان..."><?php 
+                        $content = json_decode($form['content'] ?? '', true);
+                        echo htmlspecialchars($content['description'] ?? ''); 
+                    ?></textarea>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" style="color:#f8fafc;">تاریخ شروع (اختیاری)</label>
+                        <input type="datetime-local" class="form-control" name="start_date" value="<?php echo !empty($form['start_date']) ? date('Y-m-d\TH:i', strtotime($form['start_date'])) : ''; ?>">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" style="color:#f8fafc;">تاریخ پایان (اختیاری)</label>
+                        <input type="datetime-local" class="form-control" name="end_date" value="<?php echo !empty($form['end_date']) ? date('Y-m-d\TH:i', strtotime($form['end_date'])) : ''; ?>">
+                    </div>
+                </div>
             </div>
-            <div class="mb-3">
-    <label for="formLogo" class="form-label">لوگوی فرم</label>
-    <input type="file" class="form-control" id="formLogo" name="logo" accept="image/*">
-</div>
-            <div class="mb-3">
-                <label for="formDescription" class="form-label">توضیحات فرم</label>
-                <textarea id="formDescription" name="description"><?php echo htmlspecialchars($form['description'] ?? ''); ?></textarea>
+
+            <!-- Question Controls -->
+            <div class="card-custom">
+                <h5 class="mb-3" style="color:#38bdf8;">افزودن سوال جدید</h5>
+                <div class="d-flex flex-wrap gap-2 mb-4">
+                    <button type="button" class="btn btn-sm btn-outline-light" onclick="addQuestion('text')">+ متن کوتاه</button>
+                    <button type="button" class="btn btn-sm btn-outline-light" onclick="addQuestion('textarea')">+ متن بلند</button>
+                    <button type="button" class="btn btn-sm btn-outline-light" onclick="addQuestion('multiple')">+ چند گزینه‌ای</button>
+                    <button type="button" class="btn btn-sm btn-outline-light" onclick="addQuestion('checkbox')">+ چک‌باکس</button>
+                    <button type="button" class="btn btn-sm btn-outline-light" onclick="addQuestion('dropdown')">+ منوی کشویی</button>
+                </div>
+
+                <div id="questionsContainer"></div>
             </div>
-            <div class="question-types">
-                <h5>افزودن سوال</h5>
-                <button type="button" class="btn btn-secondary" data-type="text">متن کوتاه</button>
-                <button type="button" class="btn btn-secondary" data-type="textarea">متن بلند</button>
-                <button type="button" class="btn btn-secondary" data-type="multiple">چندگزینه‌ای</button>
-                <button type="button" class="btn btn-secondary" data-type="checkbox">چک‌باکس</button>
-                <button type="button" class="btn btn-secondary" data-type="dropdown">کشویی</button>
-                <button type="button" class="btn btn-secondary" data-type="file">آپلود فایل</button>
-                <button type="button" class="btn btn-secondary" data-type="date">تاریخ</button>
-                <button type="button" class="btn btn-secondary" data-type="range">اسلایدر</button>
+
+            <div class="d-flex justify-content-end gap-2 mb-5">
+                <button type="submit" class="btn btn-gradient-primary"><i class="fas fa-save me-1"></i> ذخیره فرم</button>
             </div>
-            <div id="questionsContainer"></div>
-            <div class="mb-3">
-                <label for="startDate" class="form-label">تاریخ شروع</label>
-                <input type="datetime-local" class="form-control" id="startDate" name="start_date">
-            </div>
-            <div class="mb-3">
-                <label for="endDate" class="form-label">تاریخ پایان</label>
-                <input type="datetime-local" class="form-control" id="endDate" name="end_date">
-            </div>
-            <button type="button" class="btn btn-info mt-3 ms-2" onclick="previewForm()">پیش‌نمایش</button>
-            <button type="submit" class="btn btn-primary mt-3">ذخیره فرم</button>
         </form>
     </div>
+
+    <footer>
+        سامانه مدیریت یادگیری | طراحی شده توسط <a href="https://aminmadani.ir" target="_blank">محمدامین مدنی محمدی</a>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let questionCounter = 0;
 
-        function addQuestion(type) {
+        function addQuestion(type, data = null) {
             questionCounter++;
             const container = document.getElementById('questionsContainer');
-            const questionDiv = document.createElement('div');
-            questionDiv.className = 'question-item';
-            questionDiv.dataset.questionId = questionCounter;
+            const div = document.createElement('div');
+            div.className = 'question-item';
 
             let html = `
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <strong style="color:#a855f7;">سوال ${questionCounter} (${type})</strong>
+                    <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="this.parentElement.parentElement.remove()"><i class="fas fa-trash"></i></button>
+                </div>
                 <div class="mb-3">
-                    <label class="form-label">متن سوال</label>
-                    <input type="text" class="form-control" name="questions[${questionCounter}][label]" placeholder="سوال خود را وارد کنید" required>
+                    <label class="form-label" style="color:#f8fafc;">متن سوال</label>
+                    <input type="text" class="form-control" name="questions[${questionCounter}][label]" value="${data?.label || ''}" required placeholder="سوال را بنویسید...">
                 </div>
                 <input type="hidden" name="questions[${questionCounter}][type]" value="${type}">
-                <div class="mb-3">
-                    <label class="form-check-label">
-                        <input type="checkbox" name="questions[${questionCounter}][required]" value="1"> پاسخ اجباری
-                    </label>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" name="questions[${questionCounter}][required]" value="1" ${data?.required === '1' ? 'checked' : ''}>
+                    <label class="form-check-label" style="color:#cbd5e1;">پاسخ به این سوال اجباری باشد</label>
                 </div>`;
 
-            if (type === 'text' || type === 'textarea') {
-                html += `
-                    <div class="mb-3">
-                        <label class="form-label">Placeholder</label>
-                        <input type="text" class="form-control" name="questions[${questionCounter}][placeholder]" placeholder="مثال: پاسخ خود را اینجا وارد کنید">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">حداکثر طول (کاراکتر)</label>
-                        <input type="number" class="form-control" name="questions[${questionCounter}][maxlength]" min="1" max="1000">
-                    </div>`;
-            } else if (type === 'multiple' || type === 'checkbox' || type === 'dropdown') {
-                html += `
-                    <div class="option-list" data-question-id="${questionCounter}">
-                        <h6>گزینه‌ها</h6>
-                        <div class="input-group mb-3">
-                            <input type="text" class="form-control" name="questions[${questionCounter}][options][]" placeholder="گزینه ۱" required>
-                            <button type="button" class="btn btn-danger btn-remove-option">حذف</button>
-                        </div>
-                        <button type="button" class="btn btn-secondary btn-add-option" data-question-id="${questionCounter}">افزودن گزینه</button>
-                    </div>`;
-            } else if (type === 'file') {
-                html += `
-                    <div class="mb-3">
-                        <label class="form-label">فرمت‌های مجاز (مثال: image/*,application/pdf)</label>
-                        <input type="text" class="form-control" name="questions[${questionCounter}][accept]" placeholder="مثال: image/*,application/pdf">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">حداکثر حجم فایل (مگابایت)</label>
-                        <input type="number" class="form-control" name="questions[${questionCounter}][maxsize]" min="1" max="100" value="5">
-                    </div>`;
-            } else if (type === 'range') {
-                html += `
-                    <div class="mb-3">
-                        <label class="form-label">حداقل مقدار</label>
-                        <input type="number" class="form-control" name="questions[${questionCounter}][min]" value="0">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">حداکثر مقدار</label>
-                        <input type="number" class="form-control" name="questions[${questionCounter}][max]" value="100">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">گام (Step)</label>
-                        <input type="number" class="form-control" name="questions[${questionCounter}][step]" value="1">
-                    </div>`;
+            if (['multiple', 'checkbox', 'dropdown'].includes(type)) {
+                html += `<div class="options-group mb-3"><label class="form-label" style="color:#38bdf8;">گزینه‌ها</label>`;
+                const opts = data?.options && data.options.length ? data.options : ['گزینه ۱'];
+                opts.forEach(opt => {
+                    html += `
+                        <div class="input-group mb-2">
+                            <input type="text" class="form-control" name="questions[${questionCounter}][options][]" value="${opt}" required>
+                            <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()">حذف</button>
+                        </div>`;
+                });
+                html += `<button type="button" class="btn btn-sm btn-outline-info mt-1" onclick="addOption(this, ${questionCounter})">+ افزودن گزینه</button></div>`;
             }
 
-            html += `
-                <div class="question-actions">
-                    <button type="button" class="btn btn-danger btn-remove-question">حذف سوال</button>
-                </div>`;
-
-            questionDiv.innerHTML = html;
-            container.appendChild(questionDiv);
-
-            
-            questionDiv.querySelector('.btn-remove-question').addEventListener('click', () => {
-                questionDiv.remove();
-            });
-
-            
-            if (type === 'multiple' || type === 'checkbox' || type === 'dropdown') {
-                questionDiv.querySelector('.btn-add-option').addEventListener('click', () => {
-                    const optionList = questionDiv.querySelector('.option-list');
-                    const optionDiv = document.createElement('div');
-                    optionDiv.className = 'input-group mb-3';
-                    optionDiv.innerHTML = `
-                        <input type="text" class="form-control" name="questions[${questionCounter}][options][]" placeholder="گزینه جدید" required>
-                        <button type="button" class="btn btn-danger btn-remove-option">حذف</button>`;
-                    optionList.insertBefore(optionDiv, optionList.querySelector('.btn-add-option'));
-                    optionDiv.querySelector('.btn-remove-option').addEventListener('click', () => {
-                        optionDiv.remove();
-                    });
-                });
-
-                
-                questionDiv.querySelectorAll('.btn-remove-option').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        btn.parentElement.remove();
-                    });
-                });
-            }
+            div.innerHTML = html;
+            container.appendChild(div);
         }
-        function previewForm() {
-            tinymce.triggerSave();
-            const title = document.getElementById('formTitle').value;
-            const description = document.getElementById('formDescription').value;
-            const questions = [];
-            document.querySelectorAll('.question-item').forEach((item, index) => {
-                const label = item.querySelector(`input[name="questions[${index + 1}][label]"]`).value;
-                const type = item.querySelector(`input[name="questions[${index + 1}][type]"]`).value;
-                const required = item.querySelector(`input[name="questions[${index + 1}][required]"]`).checked;
-                const options = type === 'multiple' || type === 'checkbox' || type === 'dropdown' 
-                    ? Array.from(item.querySelectorAll(`input[name="questions[${index + 1}][options][]"]`)).map(opt => opt.value) 
-                    : [];
-                questions.push({ label, type, required, options });
-            });
 
-            let previewHtml = `<h3>${title}</h3><div>${description}</div>`;
-            questions.forEach(q => {
-                previewHtml += `<div class="mb-3"><label>${q.label}${q.required ? '<span class="text-danger">*</span>' : ''}</label>`;
-                if (q.type === 'text') previewHtml += `<input type="text" class="form-control" disabled>`;
-                else if (q.type === 'textarea') previewHtml += `<textarea class="form-control" disabled></textarea>`;
-                else if (q.type === 'multiple') {
-                    q.options.forEach(opt => {
-                        previewHtml += `<div class="form-check"><input type="radio" class="form-check-input" disabled><label>${opt}</label></div>`;
-                    });
-                }
-                previewHtml += `</div>`;
-            });
-
-            const modal = document.createElement('div');
-            modal.className = 'modal fade';
-            modal.innerHTML = `
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">پیش‌نمایش فرم</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">${previewHtml}</div>
-                    </div>
-                </div>`;
-            document.body.appendChild(modal);
-            const bsModal = new bootstrap.Modal(modal);
-            bsModal.show();
-            modal.addEventListener('hidden.bs.modal', () => modal.remove());
+        function addOption(btn, qId) {
+            const group = btn.parentElement;
+            const div = document.createElement('div');
+            div.className = 'input-group mb-2';
+            div.innerHTML = `
+                <input type="text" class="form-control" name="questions[${qId}][options][]" placeholder="گزینه جدید" required>
+                <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()">حذف</button>`;
+            group.insertBefore(div, btn);
         }
-        document.querySelectorAll('.question-types button').forEach(btn => {
-            btn.addEventListener('click', () => {
-                addQuestion(btn.dataset.type);
-            });
-        });
 
         document.getElementById('formBuilderForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            tinymce.triggerSave();
             const formData = new FormData(e.target);
             try {
-                const response = await fetch('form_builder.php', {
-                    method: 'POST',
-                    body: formData
-                });
-                const result = await response.json();
-                const formMessage = document.getElementById('formMessage');
-                formMessage.innerHTML = `
-                    <div class="alert alert-${result.success ? 'success' : 'danger'} alert-dismissible fade show" role="alert">
-                        ${result.success ? result.message : 'خطا: ' + result.error}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>`;
-                if (result.success && result.code) {
-                    formMessage.innerHTML += `
-                        <div class="alert alert-info alert-dismissible fade show" role="alert">
-                            لینک فرم: <a href="view_form.php?code=${result.code}" target="_blank">${window.location.origin}/forms/view_form.php?code=${result.code}</a>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>`;
-                }
-                if (result.success && result.form_id) {
-                    
-                    window.location.href = 'manage_forms.php';
-                }
-            } catch (err) {
-                document.getElementById('formMessage').innerHTML = `
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        خطا: ${err.message}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>`;
-            }
+                const res = await fetch('form_builder.php', { method: 'POST', body: formData });
+                const result = await res.json();
+                if (result.success) window.location.href = 'manage_forms.php';
+                else alert('خطا: ' + result.error);
+            } catch (err) { alert('خطا در ارتباط با سرور'); }
         });
 
-        
+        // Load questions if editing existing form
         <?php if ($form && !empty($form['content'])): ?>
-            console.log('Raw content from DB:', <?php echo json_encode($form['content']); ?>);
-            let savedContent;
-            try {
-                savedContent = <?php echo json_encode(json_decode($form['content'], true), JSON_UNESCAPED_UNICODE); ?>;
-                console.log('Parsed savedContent:', savedContent);
-
-                tinymce.init({
-                    selector: '#formDescription',
-                    plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table code help wordcount',
-                    toolbar: 'undo redo | formatselect | bold italic underline | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image | code',
-                    menubar: 'edit insert view format table tools',
-                    height: 300,
-                    directionality: 'rtl',
-                    content_style: 'body { font-family: Vazir, Arial, sans-serif; }',
-                    images_upload_url: 'upload_image.php',
-                    automatic_uploads: true,
-                    file_picker_types: 'image',
-                    file_picker_callback: (cb, value, meta) => {
-                        const input = document.createElement('input');
-                        input.setAttribute('type', 'file');
-                        input.setAttribute('accept', 'image/*');
-                        input.onchange = function () {
-                            const file = this.files[0];
-                            const reader = new FileReader();
-                            reader.onload = function () {
-                                const id = 'blobid' + (new Date()).getTime();
-                                const blobCache = tinymce.activeEditor.editorUpload.blobCache;
-                                const base64 = reader.result.split(',')[1];
-                                const blobInfo = blobCache.create(id, file, base64);
-                                blobCache.add(blobInfo);
-                                cb(blobInfo.blobUri(), { title: file.name });
-                            };
-                            reader.readAsDataURL(file);
-                        };
-                        input.click();
-                    },
-                    setup: (editor) => {
-                        editor.on('change', () => {
-                            document.getElementById('formDescription').value = editor.getContent();
-                        });
-                        editor.on('init', () => {
-                            if (savedContent && savedContent.description) {
-                                console.log('Loading description:', savedContent.description);
-                                editor.setContent(savedContent.description);
-                                document.getElementById('formDescription').value = savedContent.description;
-                            } else {
-                                console.log('No description found in savedContent');
-                            }
-                        });
-                    }
-                });
-
-                if (savedContent && savedContent.questions && Object.keys(savedContent.questions).length > 0) {
-                    console.log('Loading questions:', savedContent.questions);
-                    Object.values(savedContent.questions).forEach((q, index) => {
-                        console.log('Processing question:', q);
-                        addQuestion(q.type);
-                        const questionDiv = document.querySelector(`.question-item[data-question-id="${questionCounter}"]`);
-                        if (!questionDiv) {
-                            console.error(`Question div not found for questionCounter: ${questionCounter}`);
-                            return;
-                        }
-                        if (q.label) questionDiv.querySelector(`input[name="questions[${questionCounter}][label]"]`).value = q.label;
-                        if (q.required === '1') questionDiv.querySelector(`input[name="questions[${questionCounter}][required]"]`).checked = true;
-                        if (q.placeholder) questionDiv.querySelector(`input[name="questions[${questionCounter}][placeholder]"]`).value = q.placeholder;
-                        if (q.maxlength) questionDiv.querySelector(`input[name="questions[${questionCounter}][maxlength]"]`).value = q.maxlength;
-                        if (q.accept) questionDiv.querySelector(`input[name="questions[${questionCounter}][accept]"]`).value = q.accept;
-                        if (q.maxsize) questionDiv.querySelector(`input[name="questions[${questionCounter}][maxsize]"]`).value = q.maxsize;
-                        if (q.min) questionDiv.querySelector(`input[name="questions[${questionCounter}][min]"]`).value = q.min;
-                        if (q.max) questionDiv.querySelector(`input[name="questions[${questionCounter}][max]"]`).value = q.max;
-                        if (q.step) questionDiv.querySelector(`input[name="questions[${questionCounter}][step]"]`).value = q.step;
-                        if (q.options && q.options.length > 0) {
-                            console.log('Loading options:', q.options);
-                            questionDiv.querySelectorAll('.option-list .input-group').forEach((opt, index) => {
-                                if (index > 0) opt.remove();
-                            });
-                            q.options.forEach((opt, index) => {
-                                if (index === 0) {
-                                    questionDiv.querySelector(`input[name="questions[${questionCounter}][options][]"]`).value = opt;
-                                } else {
-                                    const optionList = questionDiv.querySelector('.option-list');
-                                    const optionDiv = document.createElement('div');
-                                    optionDiv.className = 'input-group mb-3';
-                                    optionDiv.innerHTML = `
-                                        <input type="text" class="form-control" name="questions[${questionCounter}][options][]" value="${opt}" required>
-                                        <button type="button" class="btn btn-danger btn-remove-option">حذف</button>`;
-                                    optionList.insertBefore(optionDiv, optionList.querySelector('.btn-add-option'));
-                                    optionDiv.querySelector('.btn-remove-option').addEventListener('click', () => {
-                                        optionDiv.remove();
-                                    });
-                                }
-                            });
-                        }
-                    });
-                } else {
-                    console.log('No questions found in savedContent');
-                }
-            } catch (err) {
-                console.error('Error parsing savedContent:', err);
+            const savedData = <?php echo json_encode(json_decode($form['content'], true), JSON_UNESCAPED_UNICODE); ?>;
+            if (savedData && savedData.questions) {
+                Object.values(savedData.questions).forEach(q => addQuestion(q.type, q));
             }
-        <?php else: ?>
-            console.log('No form content to load');
-            tinymce.init({
-                selector: '#formDescription',
-                plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table code help wordcount',
-                toolbar: 'undo redo | formatselect | bold italic underline | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image | code',
-                menubar: 'edit insert view format table tools',
-                height: 300,
-                directionality: 'rtl',
-                content_style: 'body { font-family: Vazir, Arial, sans-serif; }',
-                images_upload_url: 'upload_image.php',
-                automatic_uploads: true,
-                file_picker_types: 'image',
-                file_picker_callback: (cb, value, meta) => {
-                    const input = document.createElement('input');
-                    input.setAttribute('type', 'file');
-                    input.setAttribute('accept', 'image/*');
-                    input.onchange = function () {
-                        const file = this.files[0];
-                        const reader = new FileReader();
-                        reader.onload = function () {
-                            const id = 'blobid' + (new Date()).getTime();
-                            const blobCache = tinymce.activeEditor.editorUpload.blobCache;
-                            const base64 = reader.result.split(',')[1];
-                            const blobInfo = blobCache.create(id, file, base64);
-                            blobCache.add(blobInfo);
-                            cb(blobInfo.blobUri(), { title: file.name });
-                        };
-                        reader.readAsDataURL(file);
-                    };
-                    input.click();
-                },
-                setup: (editor) => {
-                    editor.on('change', () => {
-                        document.getElementById('formDescription').value = editor.getContent();
-                    });
-                }
-            });
         <?php endif; ?>
-            function enableDragAndDrop() {
-    const container = document.getElementById('questionsContainer');
-    container.addEventListener('dragstart', (e) => {
-        if (e.target.classList.contains('question-item')) {
-            e.target.classList.add('dragging');
-            e.dataTransfer.setData('text/plain', e.target.dataset.questionId);
-        }
-    });
-    container.addEventListener('dragend', (e) => {
-        e.target.classList.remove('dragging');
-    });
-    container.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        const afterElement = getDragAfterElement(container, e.clientY);
-        const draggable = document.querySelector('.dragging');
-        if (afterElement == null) {
-            container.appendChild(draggable);
-        } else {
-            container.insertBefore(draggable, afterElement);
-        }
-    });
-    function getDragAfterElement(container, y) {
-        const draggableElements = [...container.querySelectorAll('.question-item:not(.dragging)')];
-        return draggableElements.reduce((closest, child) => {
-            const box = child.getBoundingClientRect();
-            const offset = y - box.top - box.height / 2;
-            if (offset < 0 && offset > closest.offset) {
-                return { offset: offset, element: child };
-            }
-            return closest;
-        }, { offset: Number.NEGATIVE_INFINITY }).element;
-    }
-}
-document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.question-item').forEach(item => {
-        item.setAttribute('draggable', true);
-    });
-    enableDragAndDrop();
-});
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

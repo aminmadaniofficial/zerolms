@@ -1,4 +1,20 @@
 <?php
+/**
+ *     _____                    __   __  ___ _____
+ *    /__  /  ___  _________   / /  /  |/  // ___/
+ *      / /  / _ \/ ___/ __ \ / /  / /|_/ / \__ \ 
+ *     / /__/  __/ /  / /_/ // /__/ /  / / ___/ / 
+ *    /____/\___/_/   \____//____/_/  /_/ /____/  
+ * 
+ * ------------------------------------------------------------
+ *  System      : Zero LMS Core Engine
+ *  Author      : Amin Madani
+ *  Created     : 2026
+ *  Notice      : Unauthorized copying or modification of this file,
+ *                via any medium is strictly prohibited.
+ * ------------------------------------------------------------
+ */
+
 session_start();
 require_once '../../db.php';
 
@@ -17,15 +33,14 @@ if ($course_id <= 0 || empty($content)) {
     exit();
 }
 
-
 $user_id = $_SESSION['user_id'];
 $user_role = $_SESSION['role'] ?? 'student';
 
+// Verify target class course permissions
 if ($user_role === 'teacher' || $user_role === 'admin') {
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM classcourseteachers WHERE teacher_id = :user_id AND class_course_id = :course_id");
     $stmt->execute(['user_id' => $user_id, 'course_id' => $course_id]);
 } else {
-    
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM classcourses cc JOIN users u ON u.class_id = cc.class_id WHERE cc.id = :course_id AND u.id = :user_id");
     $stmt->execute(['course_id' => $course_id, 'user_id' => $user_id]);
 }
@@ -36,7 +51,6 @@ if ($count == 0 && $user_role !== 'admin') {
     echo json_encode(['success' => false, 'error' => 'عدم دسترسی به درس']);
     exit();
 }
-
 
 try {
     $stmt = $pdo->prepare("INSERT INTO messages (class_course_id, user_id, content, created_at) VALUES (:cid, :uid, :content, NOW())");

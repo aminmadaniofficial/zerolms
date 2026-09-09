@@ -1,8 +1,28 @@
 <?php
+/**
+ *     _____                    __   __  ___ _____
+ *    /__  /  ___  _________   / /  /  |/  // ___/
+ *      / /  / _ \/ ___/ __ \ / /  / /|_/ / \__ \ 
+ *     / /__/  __/ /  / /_/ // /__/ /  / / ___/ / 
+ *    /____/\___/_/   \____//____/_/  /_/ /____/  
+ * 
+ * ------------------------------------------------------------
+ *  System      : Zero LMS Core Engine
+ *  Author      : Amin Madani
+ *  Created     : 2026
+ * ------------------------------------------------------------
+ */
+
 session_start();
-require_once '../db.php';
-require_once '../log.php';
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_NOTICE);
+ini_set('display_errors', '0');
+require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../log.php';
+
+// Set default timezone for system timestamp operations
 date_default_timezone_set('Asia/Tehran');
+
+// Authenticate user session existence
 if (!isset($_SESSION['user_id'])) {
     header("Location: ../login");
     exit();
@@ -11,15 +31,18 @@ if (!isset($_SESSION['user_id'])) {
 $user_role = $_SESSION['role'];
 $username = $_SESSION['username'];
 
+// Fetch logged-in user real name
 $stmt = $pdo->prepare("SELECT name FROM users WHERE username = :username LIMIT 1");
 $stmt->execute(['username' => $username]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 $realName = $user['name'] ?? $username;
+
+// Retrieve or generate Chrome extension token for active user
 $stmt = $pdo->prepare("SELECT extension_token FROM users WHERE username = ? LIMIT 1");
 $stmt->execute([$username]);
 $tokenRow = $stmt->fetch(PDO::FETCH_ASSOC);
 
-if (!$tokenRow['extension_token']) {
+if (!$tokenRow || empty($tokenRow['extension_token'])) {
     $newToken = bin2hex(random_bytes(16));
     $update = $pdo->prepare("UPDATE users SET extension_token = ? WHERE username = ?");
     $update->execute([$newToken, $username]);
@@ -27,271 +50,49 @@ if (!$tokenRow['extension_token']) {
 } else {
     $extensionToken = $tokenRow['extension_token'];
 }
+
+// Generate CSRF token for secure AJAX form submissions
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 $csrf_token = $_SESSION['csrf_token'];
+
+// Role label helper
+$roleLabel = match($user_role) {
+    'admin' => 'مدیریت کل سیستم',
+    'teacher' => 'دبیر سامانه',
+    'student' => 'دانش‌آموز',
+    default => 'کاربر سامانه'
+};
 ?>
 <!DOCTYPE html>
-<html lang="fa" dir="rtl"
-    style="cursor: url(https://cdn.custom-cursor.com/db/cursor/32/Infinity_Gauntlet_Cursor.png) , default !important">
+<html lang="fa" dir="rtl">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>داشبورد مدرسه</title>
+    <title>داشبورد یکپارچه | ZeroLMS</title>
     <link rel="icon" type="image/png" sizes="16x16" href="../images/favicon.png">
+    
+    <!-- Bootstrap RTL & FontAwesome -->
     <link href="../css/bootstrap.rtl.min.css" rel="stylesheet">
-    <link href="../../css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="../css/fontawesome.min.css">
-    <link rel="stylesheet" href="assets/loader.css">
-    <link rel="stylesheet" href="assets/style.css">
-    <style>
-        @keyframes spin {
-            from {
-                transform: rotate(0deg);
-            }
-
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        .fa-spin-hover:hover,
-        .fa-spin-hover:active {
-            animation: spin 0.6s linear;
-        }
-
-        @media (max-width: 991px) {
-            .sidebar {
-                position: fixed;
-                top: 0;
-                bottom: 0;
-                right: -300px;
-                width: 250px;
-                z-index: 9999;
-                transition: right 0.4s ease;
-            }
-
-            .sidebar.show {
-                right: 0 !important;
-            }
-        }
-
-        #hamburger {
-            position: relative;
-            z-index: 10000;
-           
-            cursor: pointer !important;
-           
-            padding: 10px;
-           
-        }
-    </style>
+    <link href="../css/all.min.css" rel="stylesheet">
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Unified High-Contrast Dashboard Stylesheet & Preloader -->
+    <link rel="stylesheet" href="assets/style.css?v=3.1">
+    <link rel="stylesheet" href="assets/loader.css?v=3.1">
+    
+    <!-- Chart.js Engine -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<script>
-    async function loadGallery() {
-        console.log('Loading gallery...');
-        try {
-            const response = await fetch('fetch_gallery.php', { cache: 'no-cache' });
-            if (!response.ok) throw new Error('خطای شبکه: ' + response.status);
-            const data = await response.json();
-            console.log('Gallery data:', data);
-            if (!data.success) throw new Error(data.error || 'خطای ناشناخته');
-            const galleryList = document.querySelector('.gallery-list .list-group');
-            galleryList.innerHTML = '';
-            if (data.images.length === 0) {
-                galleryList.innerHTML = '<li class="list-group-item">هیچ عکسی در گالری وجود ندارد.</li>';
-            } else {
-                data.images.forEach(image => {
-                    const li = document.createElement('li');
-                    li.className = 'list-group-item d-flex align-items-center';
-                    li.innerHTML = `
-                                <img src="../${image.image_path}" alt="${image.title || ''}" class="gallery-img me-3">
-                                <div class="flex-grow-1" style="color:white;">
-                                    <strong>${image.title || 'بدون عنوان'}</strong><br>
-                                    <small>آپلود شده توسط: ${image.uploaded_by || 'ناشناس'} در ${image.created_at}</small>
-                                </div>
-                                <div>
-                                    <button class="btn btn-warning btn-sm me-2 edit-gallery-btn" data-id="${image.id}" data-title="${image.title || ''}" data-path="${image.image_path}">ویرایش</button>
-                                    <button class="btn btn-danger btn-sm delete-gallery-btn" data-id="${image.id}" data-path="${image.image_path}">حذف</button>
-                                </div>`;
-                    galleryList.appendChild(li);
-                });
-                document.querySelectorAll('.edit-gallery-btn').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        const id = btn.getAttribute('data-id');
-                        const title = btn.getAttribute('data-title');
-                        document.getElementById('editGalleryId').value = id;
-                        document.getElementById('editGalleryTitle').value = title;
-                        new bootstrap.Modal(document.getElementById('editGalleryModal')).show();
-                    });
-                });
-                document.querySelectorAll('.delete-gallery-btn').forEach(btn => {
-                    btn.addEventListener('click', async () => {
-                        if (!confirm('آیا مطمئن هستید که می‌خواهید این عکس را حذف کنید؟')) return;
-                        const formData = new FormData();
-                        formData.append('action', 'delete');
-                        formData.append('id', btn.getAttribute('data-id'));
-                        formData.append('image_path', btn.getAttribute('data-path'));
-                        formData.append('csrf_token', '<?php echo htmlspecialchars($csrf_token); ?>');
-                        try {
-                            const response = await fetch('gallery.php', {
-                                method: 'POST',
-                                body: formData,
-                                cache: 'no-cache'
-                            });
-                            if (!response.ok) throw new Error('خطای شبکه: ' + response.status);
-                            const result = await response.json();
-                            document.getElementById('galleryMessage').innerHTML = `
-                                        <div class="alert alert-${result.success ? 'success' : 'danger'} alert-dismissible fade show" role="alert">
-                                            ${result.success ? result.message : 'خطا: ' + result.error}
-                                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                                        </div>`;
-                            if (result.success) loadGallery();
-                        } catch (err) {
-                            document.getElementById('galleryMessage').innerHTML = `
-                                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                            خطا در ارتباط با سرور: ${err.message}
-                                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                                        </div>`;
-                        }
-                    });
-                });
-            }
-        } catch (err) {
-            console.error('Gallery load error:', err);
-            document.getElementById('galleryMessage').innerHTML = `
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            خطا در بارگذاری گالری: ${err.message}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>`;
-        }
-    }
-    async function loadLogs(page = 1) {
-        try {
-            const response = await fetch(`fetch_logs.php?page=${page}`, { cache: 'no-cache' });
-            if (!response.ok) throw new Error('خطای شبکه: ' + response.status);
-            const data = await response.json();
-            let html = `
-                    <div style="margin-left:0; margin-top:20px; width:100%; margin:auto;color:#999999;">
-                        <div class="table-responsive" style="max-width:900px; width:100%;margin:auto;">
-                            <table class="table table-striped table-bordered text-center align-middle">
-                                <thead class="table-primary">
-                                    <tr>
-                                        <th style="width:50px;">#</th>
-                                        <th style="min-width:120px;">کاربر</th>
-                                        <th style="min-width:100px;">عمل</th>
-                                        <th style="min-width:120px;">نوع هدف</th>
-                                        <th style="min-width:120px;">شناسه هدف</th>
-                                        <th style="min-width:150px;">تاریخ</th>
-                                    </tr>
-                                </thead>
-                                <tbody>`;
-            if (data.logs.length === 0) {
-                html += `<tr><td colspan="6">هیچ لاگی وجود ندارد</td></tr>`;
-            } else {
-                data.logs.forEach(log => {
-                    html += `
-                            <tr>
-                                <td>${log.id}</td>
-                                <td>${log.username || 'سیستم'}</td>
-                                <td>${log.action}</td>
-                                <td>${log.target_type}</td>
-                                <td>${log.target_id || ''}</td>
-                                <td>${log.created_at}</td>
-                            </tr>`;
-                });
-            }
-            html += `</tbody></table></div></div>`;
-            document.getElementById('logsTable').innerHTML = html;
-
-            let pagHtml = '<ul class="pagination justify-content-center mt-3">';
-            if (data.page > 1) {
-                pagHtml += `<li class="page-item"><a class="page-link" href="#" onclick="loadLogs(${data.page - 1});return false;">قبلی</a></li>`;
-            }
-            for (let p = 1; p <= data.totalPages; p++) {
-                pagHtml += `<li class="page-item ${p === data.page ? 'active' : ''}">
-                                <a class="page-link" href="#" onclick="loadLogs(${p});return false;">${p}</a>
-                            </li>`;
-            }
-            if (data.page < data.totalPages) {
-                pagHtml += `<li class="page-item"><a class="page-link" href="#" onclick="loadLogs(${data.page + 1});return false;">بعدی</a></li>`;
-            }
-            pagHtml += '</ul>';
-            document.getElementById('logsPagination').innerHTML = pagHtml;
-        } catch (err) {
-            document.getElementById('logsTable').innerHTML = `<div class="alert alert-danger">خطا در بارگذاری لاگ‌ها: ${err.message}</div>`;
-        }
-    }
-    document.addEventListener('DOMContentLoaded', function () {
-        function showSection(sectionId) {
-            document.querySelectorAll('.dashboard-section').forEach(sec => {
-                sec.style.display = sec.id === sectionId ? 'block' : 'none';
-            });
-        }
-
-        const mainBtn = document.getElementById('showMainContent');
-        if (mainBtn) {
-            mainBtn.addEventListener('click', function (e) {
-                e.preventDefault();
-
-                showSection('mainContent');
-            });
-        }
-
-        const classesBtn = document.getElementById('showClasses');
-        if (classesBtn) {
-            classesBtn.addEventListener('click', function (e) {
-                e.preventDefault();
-
-                showSection('classesSection');
-            });
-        }
-
-        const settingsBtn = document.getElementById('showSettings');
-        if (settingsBtn) {
-            settingsBtn.addEventListener('click', function (e) {
-                e.preventDefault();
-                showSection('settingsSection');
-                const msg = document.getElementById('settingsMessage');
-                if (msg) msg.innerHTML = '';
-            });
-        }
-
-        const logsBtn = document.getElementById('showLogs');
-        if (logsBtn) {
-            logsBtn.addEventListener('click', function (e) {
-                e.preventDefault();
-                showSection('logsSection');
-                if (typeof loadLogs === "function") loadLogs(1);
-            });
-        }
-
-        const galleryBtn = document.getElementById('showGallery');
-        if (galleryBtn) {
-            galleryBtn.addEventListener('click', function (e) {
-                e.preventDefault();
-                showSection('gallerySection');
-                loadGallery();
-            });
-        }
-    });
-</script>
-<?php date_default_timezone_set('Asia/Tehran'); ?>
-<div class="watch">
-    <div class="frame">
-        <div class="text">
-            <div id="hours"><?php echo date('H'); ?></div>
-            <div id="minutes"><?php echo date('i'); ?></div>
-        </div>
-    </div>
-</div>
 
 <body>
+    <!-- Full Original SVG Origami Preloader Harmonized with Modern Dark Theme -->
     <div class="loader-overlay" id="loader">
-        <div class="">
-            <div id="svg-container">
+        <div class="loader-container-center">
+<div id="svg-container">
                 <svg viewBox="-100 100 800 800" preserveAspectRatio="xMidYMid meet" class="svg-hw">
                     <path id="path7050" class="path" d="m 187.44537,731.24092 15.72591,-20.08687 -17.17956,-0.13215 z">
                     </path>
@@ -494,7 +295,7 @@ $csrf_token = $_SESSION['csrf_token'];
                     </path>
                 </svg>
             </div>
-            <div class="loading loading02" dir="rtl" style="font-family: font-iran-normal;">
+            <div class="loading loading02" dir="rtl">
                 <span>بـ</span>
                 <span>ـا</span>
                 <span>ر</span>
@@ -503,183 +304,731 @@ $csrf_token = $_SESSION['csrf_token'];
                 <span>ا</span>
                 <span>ر</span>
                 <span>ی</span>
+            </div>
+            <div class="loader-subtext">سامانه جامع مدیریت یادگیری ZeroLMS</div>
+        </div>
+    </div>
 
-
+    <!-- Apple Watch Widget -->
+    <div class="watch">
+        <div class="frame">
+            <div class="text">
+                <div id="hours"><?php echo date('H'); ?></div>
+                <div id="minutes"><?php echo date('i'); ?></div>
             </div>
         </div>
     </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const loader = document.getElementById('loader');
-            document.querySelectorAll('.card, .list-group-item ').forEach((item, index) => {
-                item?.style.setProperty('--index', index);
-            });
-            setTimeout(() => {
-                if (loader) loader.classList.add('hidden');
-                setTimeout(() => {
-                    if (loader) loader.style.display = 'none';
-                    document.querySelector('.topbar')?.classList.add('animate');
-                    document.querySelector('.sidebar')?.classList.add('animate');
-                    document.querySelectorAll('.card, .list-group-item').forEach(item => {
-                        item?.classList.add('animate');
-                    });
-                    document.querySelector('footer')?.classList.add('animate');
-                }, 500);
-            }, 2500);
-        });
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <div class="sidebar" id="sidebar">
-        <div class="text-center mb-4">
-            <img src="../images/logo.svg" alt="لوگو" class="logo" style="max-width: 150px;">
+
+    <!-- ====================================================================
+         1. SIDEBAR NAVIGATION
+    ==================================================================== -->
+    <aside class="sidebar" id="sidebar">
+        <!-- Brand Header -->
+        <div class="sidebar-header">
+            <div class="sidebar-brand-icon">
+                <i class="fas fa-layer-group"></i>
+            </div>
+            <div class="sidebar-brand-text">
+                <h4>ZeroLMS</h4>
+                <span>سامانه مدیریت یادگیری</span>
+            </div>
         </div>
-        <nav class="nav flex-column">
-            <a href="#" class="nav-link" id="showMainContent"><i class="fas fa-home"></i> داشبورد</a>
+
+        <!-- Menu Links -->
+        <nav class="sidebar-menu">
+            <div class="sidebar-category-label">پیشخوان اصلی</div>
+            <a href="#" class="nav-link active" id="showMainContent">
+                <i class="fas fa-home"></i>
+                <span>داشبورد اصلی</span>
+            </a>
+            <a href="#" class="nav-link" id="showClasses">
+                <i class="fas fa-chalkboard"></i>
+                <span>کلاس‌ها و دروس مجازی</span>
+            </a>
+
+            <div class="sidebar-category-label">ابزارهای هوشمند</div>
             <?php if ($user_role === 'admin'): ?>
-                <a href="./manage_users" class="nav-link"><i class="fas fa-users-cog"></i> مدیریت کاربران</a>
-                <a href="./manage_classes" class="nav-link"><i class="fas fa-chalkboard-teacher"></i> مدیریت کلاس‌ها و
-                    دروس</a>
-                <a href="#" class="nav-link" id="showGallery"><i class="fas fa-image"></i> مدیریت گالری</a>
-                <a href="#" class="nav-link" id="showLogs"><i class="fas fa-boombox"></i> مشاهده لاگ‌ها</a>
-                <a href="./manage_blog" class="nav-link"><i class="fas fa-file"></i> مدیریت بلاگ و پست‌ها</a>
-                <a href="./homeworks/teacher.php" class="nav-link"><i class="fas fa-sticky-note"></i>مدیریت تکالیف</a>
-                <a href="./exams/" class="nav-link"><i class="fas fa-pencil"></i>مدیریت آزمون ها</a>
-                <a href="./attendance/" class="nav-link"><i class="fas fa-check"></i>مدیریت حضور و غیاب</a>
-                <a href="./reportcard/" class="nav-link"><i class="fas fa-map"></i>مدیریت نمرات</a>
-                <a href="./gamification/" class="nav-link"><i class="fas fa-star"></i>مدیریت امتیازات و نشان ها</a>
-                <a href="./forms/manage_forms.php" class="nav-link"><i class="fas fa-clipboard-list"></i> مدیریت فرم‌ها</a>
-                <a href="#" class="nav-link" id="showClasses"><i class="fas fa-video"></i> کلاس‌ها و دروس</a>
-            <?php elseif ($user_role === 'teacher'): ?>
-                <a href="#" class="nav-link" id="showClasses"><i class="fas fa-video"></i> کلاس‌ها و دروس</a>
-                <a href="./homeworks/teacher.php" class="nav-link"><i class="fas fa-sticky-note"></i>مدیریت تکالیف</a>
-                <a href="./exams/" class="nav-link"><i class="fas fa-pencil"></i>مدیریت آزمون ها</a>
-                <a href="./attendance/" class="nav-link"><i class="fas fa-check"></i>مدیریت حضور و غیاب</a>
-                <a href="./reportcard/" class="nav-link"><i class="fas fa-map"></i>مدیریت نمرات</a>
-                <a href="./manage_blog" class="nav-link"><i class="fas fa-file"></i> مدیریت بلاگ و پست‌ها</a>
-                <a href="#" class="nav-link" id="showGallery"><i class="fas fa-image"></i> مدیریت گالری</a>
-            <?php elseif ($user_role === 'student'): ?>
-                <a href="./gamification/" class="nav-link"><i class="fas fa-star"></i>امتیازات و نشان های من</a>
-                <a href="#" class="nav-link" id="showClasses"><i class="fas fa-video"></i> کلاس‌ها و دروس</a>
-                <a href="./homeworks/" class="nav-link"><i class="fas fa-pencil-alt"></i>تکالیف</a>
-                <a href="./exams/" class="nav-link"><i class="fas fa-pencil"></i>آزمون ها</a>
-                <a href="./attendance/" class="nav-link"><i class="fas fa-check"></i>مشاهده حضور و غیاب</a>
-                <a href="./reportcard/" class="nav-link"><i class="fas fa-map"></i>نمرات و کارنامه</a>
+                <a href="./schedule_builder.php" class="nav-link">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>برنامه‌ریزی هوشمند هفتگی</span>
+                    <span class="sidebar-badge">CSP</span>
+                </a>
             <?php endif; ?>
-            <a href="./ai" class="nav-link"><i class="fas fa-robot"></i>هوش مصنوعی</a>
-            <a href="#" class="nav-link" id="showSettings"><i class="fas fa-cog"></i> تنظیمات</a>
-            <a href="../logout.php" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i> خروج</a>
-        </nav>
-    </div>
-    <div class="topbar">
-        <span class="hamburger" id="hamburger"><i class="fas fa-bars fa-spin-hover"></i></span>
-        <span class="clock-icon"><i class="fas fa-clock"></i></span>
-        <span style="text-align:center; font-size: 1.2rem; font-weight: bold;">داشبورد مدرسه</span>
-    </div>
-
-    <div class="main-content dashboard-section" style="display: none;" id="mainContent">
-        <div class="container mt-4">
-
-            <h2 class="welcomeText">خوش آمدید، <?php echo htmlspecialchars($realName); ?></h2>
+            <a href="./ai" class="nav-link">
+                <i class="fas fa-robot"></i>
+                <span>دستیار هوش مصنوعی</span>
+            </a>
             <?php if ($user_role === 'admin'): ?>
-                <p>به داشبورد مدیریت خوش آمدید. از طریق سایدبار می‌توانید بخش‌های مختلف را مدیریت کنید.</p>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <div class="card p-3">
-                            <h5>مدیریت سیستم</h5>
-                            <p>کاربران، کلاس‌ها و دروس را مدیریت کنید.</p>
+                <a href="./forms/manage_forms.php" class="nav-link">
+                    <i class="fas fa-poll-h"></i>
+                    <span>مدیریت فرم‌ها و نظرسنجی</span>
+                </a>
+            <?php endif; ?>
+
+            <div class="sidebar-category-label">آموزش و آزمون</div>
+            <?php if ($user_role === 'admin' || $user_role === 'teacher'): ?>
+                <a href="./homeworks/teacher.php" class="nav-link">
+                    <i class="fas fa-tasks"></i>
+                    <span>مدیریت تکالیف</span>
+                </a>
+                <a href="./exams/" class="nav-link">
+                    <i class="fas fa-file-signature"></i>
+                    <span>بانک آزمون‌های آنلاین</span>
+                </a>
+                <a href="./attendance/" class="nav-link">
+                    <i class="fas fa-user-check"></i>
+                    <span>سامانه حضور و غیاب</span>
+                </a>
+                <a href="./reportcard/" class="nav-link">
+                    <i class="fas fa-chart-line"></i>
+                    <span>کارنامه و نمرات تحلیلی</span>
+                </a>
+            <?php else: ?>
+                <a href="./homeworks/" class="nav-link">
+                    <i class="fas fa-pencil-alt"></i>
+                    <span>تکالیف من</span>
+                </a>
+                <a href="./exams/" class="nav-link">
+                    <i class="fas fa-pen-nib"></i>
+                    <span>آزمون‌های پیش‌رو</span>
+                </a>
+                <a href="./attendance/" class="nav-link">
+                    <i class="fas fa-clipboard-check"></i>
+                    <span>وضعیت حضور و غیاب</span>
+                </a>
+                <a href="./reportcard/" class="nav-link">
+                    <i class="fas fa-award"></i>
+                    <span>نمرات و کارنامه</span>
+                </a>
+                <a href="./gamification/" class="nav-link">
+                    <i class="fas fa-star"></i>
+                    <span>امتیازات و افتخارات</span>
+                </a>
+            <?php endif; ?>
+
+            <?php if ($user_role === 'admin'): ?>
+                <div class="sidebar-category-label">مدیریت سیستم</div>
+                <a href="./manage_users" class="nav-link">
+                    <i class="fas fa-users-cog"></i>
+                    <span>مدیریت کاربران</span>
+                </a>
+                <a href="./manage_classes" class="nav-link">
+                    <i class="fas fa-school"></i>
+                    <span>مدیریت ساختار کلاس‌ها</span>
+                </a>
+                <a href="./manage_blog" class="nav-link">
+                    <i class="fas fa-newspaper"></i>
+                    <span>مدیریت وبلاگ و اطلاعیه‌ها</span>
+                </a>
+                <a href="#" class="nav-link" id="showGallery">
+                    <i class="fas fa-images"></i>
+                    <span>گالری تصاویر</span>
+                </a>
+                <a href="#" class="nav-link" id="showLogs">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>لاگ‌های امنیتی</span>
+                </a>
+            <?php elseif ($user_role === 'teacher'): ?>
+                <div class="sidebar-category-label">محتوا</div>
+                <a href="./manage_blog" class="nav-link">
+                    <i class="fas fa-newspaper"></i>
+                    <span>وبلاگ و اطلاعیه‌ها</span>
+                </a>
+                <a href="#" class="nav-link" id="showGallery">
+                    <i class="fas fa-images"></i>
+                    <span>گالری تصاویر</span>
+                </a>
+            <?php endif; ?>
+
+            <div class="sidebar-category-label">سیستم</div>
+            <a href="#" class="nav-link" id="showSettings">
+                <i class="fas fa-sliders-h"></i>
+                <span>تنظیمات حساب</span>
+            </a>
+            <a href="../logout.php" class="nav-link text-danger mt-1">
+                <i class="fas fa-power-off text-danger"></i>
+                <span>خروج از حساب</span>
+            </a>
+        </nav>
+
+        <!-- Sidebar User Card -->
+        <div class="sidebar-footer">
+            <div class="sidebar-user-card">
+                <div class="sidebar-user-avatar">
+                    <?php echo mb_substr($realName, 0, 1, 'UTF-8'); ?>
+                </div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name"><?php echo htmlspecialchars($realName); ?></div>
+                    <div class="sidebar-user-role"><?php echo htmlspecialchars($roleLabel); ?></div>
+                </div>
+                <a href="../logout.php" title="خروج" class="text-danger">
+                    <i class="fas fa-sign-out-alt"></i>
+                </a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ====================================================================
+         2. TOPBAR
+    ==================================================================== -->
+    <header class="topbar">
+        <div class="topbar-right">
+            <button class="topbar-hamburger" id="hamburger" aria-label="منو">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="topbar-status-chip">
+                <span class="pulse-dot"></span>
+                <span>سامانه برخط</span>
+            </div>
+            <div class="topbar-datetime" id="topbarLiveDate">
+                <i class="far fa-calendar-alt"></i>
+                <span id="shamsiDateText">امروز</span>
+            </div>
+        </div>
+
+        <div class="topbar-left">
+            <button class="topbar-btn clock-icon" title="ساعت">
+                <i class="fas fa-clock"></i>
+                <span id="topbarClock"><?php echo date('H:i'); ?></span>
+            </button>
+
+            <button class="topbar-btn d-none d-md-inline-flex" onclick="copyExtensionQuickToken()" title="کپی توکن افزونه کروم">
+                <i class="fas fa-puzzle-piece"></i>
+                <span>افزونه معلم</span>
+            </button>
+
+            <div class="topbar-user-pill">
+                <div class="topbar-user-avatar">
+                    <?php echo mb_substr($realName, 0, 1, 'UTF-8'); ?>
+                </div>
+                <span class="fw-semibold"><?php echo htmlspecialchars($realName); ?></span>
+                <span class="topbar-role-badge">
+                    <?php echo htmlspecialchars($roleLabel); ?>
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ====================================================================
+         3. MAIN CONTENT
+    ==================================================================== -->
+    <main class="main-content dashboard-section" id="mainContent" style="display: block;">
+        <div class="container-fluid p-0">
+            
+            <!-- Hero Welcome Card -->
+            <div class="hero-welcome-card">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                    <div>
+                        <div class="hero-badge-role mb-2">
+                            <i class="fas fa-shield-alt me-1"></i>
+                            <span>نقش کاربری: <?php echo htmlspecialchars($roleLabel); ?></span>
+                        </div>
+                        <h2 class="fw-bold text-white mb-2" style="font-size: 1.65rem;">
+                            خوش آمدید، <?php echo htmlspecialchars($realName); ?> 👋
+                        </h2>
+                        <p class="m-0" style="color: #cbd5e1; font-size: 0.92rem;">
+                            سامانه جامع مدیریت آموزشی ZeroLMS • وضعیت سیستم پایدار و آماده به کار است.
+                        </p>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2">
+                        <?php if ($user_role === 'admin'): ?>
+                            <a href="./schedule_builder.php" class="hero-action-btn">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>برنامه‌ریزی هوشمند هفتگی</span>
+                            </a>
+                        <?php endif; ?>
+                        <a href="./ai" class="hero-action-btn-secondary">
+                            <i class="fas fa-robot"></i>
+                            <span>دستیار هوش مصنوعی</span>
+                        </a>
+                        <button class="hero-action-btn-secondary" onclick="document.getElementById('showClasses').click();">
+                            <i class="fas fa-chalkboard"></i>
+                            <span>مشاهده کلاس‌ها</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- =======================================================
+                 3.1. ADMIN VIEW
+            ======================================================= -->
+            <?php if ($user_role === 'admin'): ?>
+                <?php
+                $total_users = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn() ?: 0;
+                $total_students = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'student'")->fetchColumn() ?: 0;
+                $total_teachers = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'teacher'")->fetchColumn() ?: 0;
+                $total_classes = $pdo->query("SELECT COUNT(*) FROM classes")->fetchColumn() ?: 0;
+                $total_homeworks = $pdo->query("SELECT COUNT(*) FROM homeworks")->fetchColumn() ?: 0;
+                $total_exams = $pdo->query("SELECT COUNT(*) FROM exams")->fetchColumn() ?: 0;
+                ?>
+
+                <!-- Stat Cards -->
+                <div class="row g-3 mb-4">
+                    <div class="col-xl-3 col-md-6">
+                        <div class="stat-widget-card">
+                            <div class="stat-icon-wrapper">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stat-widget-info">
+                                <div class="stat-widget-label">کل کاربران سامانه</div>
+                                <div class="stat-widget-value"><?php echo number_format($total_users); ?></div>
+                                <div class="stat-widget-trend">
+                                    <span><?php echo $total_students; ?> دانش‌آموز • <?php echo $total_teachers; ?> معلم</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="card p-3">
-                            <h5>گزارش‌ها</h5>
-                            <p>لاگ‌های سیستم را بررسی کنید.</p>
+
+                    <div class="col-xl-3 col-md-6">
+                        <div class="stat-widget-card">
+                            <div class="stat-icon-wrapper">
+                                <i class="fas fa-school"></i>
+                            </div>
+                            <div class="stat-widget-info">
+                                <div class="stat-widget-label">کلاس‌های فعال</div>
+                                <div class="stat-widget-value"><?php echo number_format($total_classes); ?></div>
+                                <div class="stat-widget-trend">
+                                    <span>کلاس‌های ثبت‌شده</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-3 col-md-6">
+                        <div class="stat-widget-card">
+                            <div class="stat-icon-wrapper">
+                                <i class="fas fa-tasks"></i>
+                            </div>
+                            <div class="stat-widget-info">
+                                <div class="stat-widget-label">تکالیف تعریف‌شده</div>
+                                <div class="stat-widget-value"><?php echo number_format($total_homeworks); ?></div>
+                                <div class="stat-widget-trend">
+                                    <span>تکالیف کلاسی</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-3 col-md-6">
+                        <div class="stat-widget-card">
+                            <div class="stat-icon-wrapper">
+                                <i class="fas fa-file-signature"></i>
+                            </div>
+                            <div class="stat-widget-info">
+                                <div class="stat-widget-label">آزمون‌های آنلاین</div>
+                                <div class="stat-widget-value"><?php echo number_format($total_exams); ?></div>
+                                <div class="stat-widget-trend">
+                                    <span>آزمون‌های فعال و پایان‌یافته</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-            <?php elseif ($user_role === 'teacher'): ?>
-                <h3>دروس شما</h3>
-                <ul>
-                    <?php
-                    $stmt = $pdo->prepare("
-                        SELECT cc.id, cc.course_name, c.name AS class_name
-                        FROM ClassCourses cc
-                        JOIN Classes c ON cc.class_id = c.id
-                        JOIN ClassCourseTeachers cct ON cc.id = cct.class_course_id
-                        WHERE cct.teacher_id = :teacher_id
-                        ORDER BY c.name, cc.course_name ASC
-                    ");
-                    $stmt->execute(['teacher_id' => $_SESSION['user_id']]);
-                    $courses = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                    if ($courses) {
-                        foreach ($courses as $course) {
-                            echo "<li><a href='classes/index.php?course_id={$course['id']}' class='text-decoration-none'>" . htmlspecialchars($course['class_name'] . ' - ' . $course['course_name']) . "</a></li>";
+                <!-- Feature Tiles -->
+                <div class="mb-4">
+                    <h5 class="fw-bold text-white mb-3">
+                        <i class="fas fa-th-large me-2 text-primary"></i>
+                        میز کار و دسترسی سریع
+                    </h5>
+
+                    <div class="row g-3">
+                        <div class="col-lg-4 col-md-6">
+                            <a href="./schedule_builder.php" class="feature-tile">
+                                <div class="feature-tile-icon">
+                                    <i class="fas fa-calendar-check"></i>
+                                </div>
+                                <div>
+                                    <h6 class="feature-tile-title">برنامه‌ریزی هوشمند هفتگی (ZeroSchedule)</h6>
+                                    <p class="feature-tile-desc">الگوریتم حل مسائل قیددار (CSP) برای چینش برنامه درسی بدون تداخل دبیر و کلاس</p>
+                                </div>
+                                <div class="feature-tile-arrow">
+                                    <span>ورود به ماژول</span>
+                                    <i class="fas fa-arrow-left"></i>
+                                </div>
+                            </a>
+                        </div>
+
+                        <div class="col-lg-4 col-md-6">
+                            <a href="./ai" class="feature-tile">
+                                <div class="feature-tile-icon">
+                                    <i class="fas fa-robot"></i>
+                                </div>
+                                <div>
+                                    <h6 class="feature-tile-title">دستیار هوش مصنوعی (AI Tutor)</h6>
+                                    <p class="feature-tile-desc">پاسخ‌گویی به پرسش‌های درسی، طرح سوالات مفهومی و رفع اشکال تعاملی</p>
+                                </div>
+                                <div class="feature-tile-arrow">
+                                    <span>گفتگو با هوش مصنوعی</span>
+                                    <i class="fas fa-arrow-left"></i>
+                                </div>
+                            </a>
+                        </div>
+
+                        <div class="col-lg-4 col-md-6">
+                            <a href="./attendance/" class="feature-tile">
+                                <div class="feature-tile-icon">
+                                    <i class="fas fa-user-check"></i>
+                                </div>
+                                <div>
+                                    <h6 class="feature-tile-title">سامانه حضور و غیاب هوشمند</h6>
+                                    <p class="feature-tile-desc">ثبت سریع ورود و خروج، گزارش‌گیری آماری غیبت‌ها و اطلاع‌رسانی</p>
+                                </div>
+                                <div class="feature-tile-arrow">
+                                    <span>مشاهده حضور و غیاب</span>
+                                    <i class="fas fa-arrow-left"></i>
+                                </div>
+                            </a>
+                        </div>
+
+                        <div class="col-lg-4 col-md-6">
+                            <a href="./reportcard/" class="feature-tile">
+                                <div class="feature-tile-icon">
+                                    <i class="fas fa-chart-bar"></i>
+                                </div>
+                                <div>
+                                    <h6 class="feature-tile-title">کارنامه و نمرات تحلیلی</h6>
+                                    <p class="feature-tile-desc">ثبت و تحلیل نمرات کلاسی، رصد پیشرفت تحصیلی و صدور کارنامه</p>
+                                </div>
+                                <div class="feature-tile-arrow">
+                                    <span>ورود به کارنامه</span>
+                                    <i class="fas fa-arrow-left"></i>
+                                </div>
+                            </a>
+                        </div>
+
+                        <div class="col-lg-4 col-md-6">
+                            <a href="./exams/" class="feature-tile">
+                                <div class="feature-tile-icon">
+                                    <i class="fas fa-pen-alt"></i>
+                                </div>
+                                <div>
+                                    <h6 class="feature-tile-title">بانک آزمون‌های آنلاین</h6>
+                                    <p class="feature-tile-desc">طراحی و برگزاری آزمون‌های تستی و تشریحی همراه با تصحیح خودکار</p>
+                                </div>
+                                <div class="feature-tile-arrow">
+                                    <span>مدیریت آزمون‌ها</span>
+                                    <i class="fas fa-arrow-left"></i>
+                                </div>
+                            </a>
+                        </div>
+
+                        <div class="col-lg-4 col-md-6">
+                            <a href="./gamification/" class="feature-tile">
+                                <div class="feature-tile-icon">
+                                    <i class="fas fa-trophy"></i>
+                                </div>
+                                <div>
+                                    <h6 class="feature-tile-title">امتیازات و نشان‌های افتخار</h6>
+                                    <p class="feature-tile-desc">باشگاه دانش‌آموزی، اعطای مدال‌های مهارتی و جدول رتبه‌بندی کلاسی</p>
+                                </div>
+                                <div class="feature-tile-arrow">
+                                    <span>جدول امتیازات</span>
+                                    <i class="fas fa-arrow-left"></i>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="row g-4 mb-4">
+                    <div class="col-lg-6">
+                        <div class="card p-4 h-100">
+                            <h6 class="fw-bold text-white mb-3">
+                                <i class="fas fa-chart-pie me-2 text-primary"></i> تفکیک کاربران سامانه
+                            </h6>
+                            <div style="height: 250px; position: relative;">
+                                <canvas id="adminUsersChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <div class="card p-4 h-100">
+                            <h6 class="fw-bold text-white mb-3">
+                                <i class="fas fa-chart-bar me-2 text-primary"></i> آمار محتوا و کلاس‌ها
+                            </h6>
+                            <div style="height: 250px; position: relative;">
+                                <canvas id="adminActivityChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    document.addEventListener('DOMContentLoaded', () => {
+                        const ctxUsers = document.getElementById('adminUsersChart')?.getContext('2d');
+                        if (ctxUsers) {
+                            new Chart(ctxUsers, {
+                                type: 'doughnut',
+                                data: {
+                                    labels: ['دانش‌آموزان', 'دبیران', 'مدیران'],
+                                    datasets: [{
+                                        data: [
+                                            <?php echo (int)$total_students; ?>, 
+                                            <?php echo (int)$total_teachers; ?>, 
+                                            <?php echo max(1, (int)$total_users - ($total_students + $total_teachers)); ?>
+                                        ],
+                                        backgroundColor: ['#2563eb', '#7c3aed', '#059669'],
+                                        borderWidth: 2,
+                                        borderColor: '#1e293b'
+                                    }]
+                                },
+                                options: { 
+                                    plugins: { 
+                                        legend: { 
+                                            position: 'bottom',
+                                            labels: { color: '#f8fafc', font: { family: 'Vazirmatn', size: 12 }, padding: 16 } 
+                                        } 
+                                    }, 
+                                    maintainAspectRatio: false 
+                                }
+                            });
                         }
-                    } else {
-                        echo "<li>هیچ درسی تخصیص نیافته است.</li>";
-                    }
-                    ?>
-                </ul>
+
+                        const ctxAct = document.getElementById('adminActivityChart')?.getContext('2d');
+                        if (ctxAct) {
+                            new Chart(ctxAct, {
+                                type: 'bar',
+                                data: {
+                                    labels: ['کلاس‌ها', 'تکالیف', 'آزمون‌ها'],
+                                    datasets: [{
+                                        label: 'تعداد',
+                                        data: [
+                                            <?php echo (int)$total_classes; ?>, 
+                                            <?php echo (int)$total_homeworks; ?>, 
+                                            <?php echo (int)$total_exams; ?>
+                                        ],
+                                        backgroundColor: ['#2563eb', '#059669', '#d97706'],
+                                        borderRadius: 6
+                                    }]
+                                },
+                                options: {
+                                    plugins: { legend: { display: false } },
+                                    scales: { 
+                                        y: { ticks: { color: '#cbd5e1', font: { family: 'Vazirmatn' } }, grid: { color: '#334155' } }, 
+                                        x: { ticks: { color: '#f8fafc', font: { family: 'Vazirmatn' } }, grid: { display: false } } 
+                                    },
+                                    maintainAspectRatio: false
+                                }
+                            });
+                        }
+                    });
+                </script>
+
+            <!-- =======================================================
+                 3.2. TEACHER VIEW
+            ======================================================= -->
+            <?php elseif ($user_role === 'teacher'): ?>
+                <?php
+                $stmt = $pdo->prepare("
+                    SELECT cc.id, cc.course_name, c.name AS class_name
+                    FROM classcourses cc
+                    JOIN classes c ON cc.class_id = c.id
+                    JOIN classcourseteachers cct ON cc.id = cct.class_course_id
+                    WHERE cct.teacher_id = :teacher_id
+                    ORDER BY c.name, cc.course_name ASC
+                ");
+                $stmt->execute(['teacher_id' => $_SESSION['user_id']]);
+                $teacher_courses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                $my_hw_count = $pdo->prepare("SELECT COUNT(*) FROM homeworks WHERE teacher_id = ?");
+                $my_hw_count->execute([$_SESSION['user_id']]);
+                $hw_total = $my_hw_count->fetchColumn() ?: 0;
+
+                $my_ex_count = $pdo->prepare("SELECT COUNT(*) FROM exams WHERE teacher_id = ?");
+                $my_ex_count->execute([$_SESSION['user_id']]);
+                $ex_total = $my_ex_count->fetchColumn() ?: 0;
+                ?>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="stat-widget-card">
+                            <div class="stat-icon-wrapper">
+                                <i class="fas fa-book-open"></i>
+                            </div>
+                            <div class="stat-widget-info">
+                                <div class="stat-widget-label">دروس تخصیص‌یافته به شما</div>
+                                <div class="stat-widget-value"><?php echo count($teacher_courses); ?></div>
+                                <div class="stat-widget-trend"><span>فعال در ترم جاری</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-widget-card">
+                            <div class="stat-icon-wrapper">
+                                <i class="fas fa-tasks"></i>
+                            </div>
+                            <div class="stat-widget-info">
+                                <div class="stat-widget-label">تکالیف تعریف‌شده</div>
+                                <div class="stat-widget-value"><?php echo $hw_total; ?></div>
+                                <div class="stat-widget-trend"><span>در انتظار بررسی پاسخ‌ها</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-widget-card">
+                            <div class="stat-icon-wrapper">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <div class="stat-widget-info">
+                                <div class="stat-widget-label">آزمون‌های تعریف‌شده</div>
+                                <div class="stat-widget-value"><?php echo $ex_total; ?></div>
+                                <div class="stat-widget-trend"><span>آزمون‌های فعال</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card p-4 mb-4">
+                    <h5 class="fw-bold text-white mb-3">
+                        <i class="fas fa-chalkboard me-2 text-primary"></i> کلاس‌های تدریس شما
+                    </h5>
+                    <div class="row g-3">
+                        <?php if ($teacher_courses): ?>
+                            <?php foreach ($teacher_courses as $tc): ?>
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="card p-3 h-100" style="background-color: #0f172a !important;">
+                                        <h6 class="text-white fw-bold mb-1"><?php echo htmlspecialchars($tc['course_name']); ?></h6>
+                                        <p class="text-muted small mb-3"><?php echo htmlspecialchars($tc['class_name']); ?></p>
+                                        <a href="classes/index.php?course_id=<?php echo $tc['id']; ?>" class="btn btn-sm btn-primary w-100 mt-auto">
+                                            ورود به کلاس مجازی
+                                        </a>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="col-12 text-center py-4 text-muted">هنوز درسی به حساب شما متصل نشده است.</div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+            <!-- =======================================================
+                 3.3. STUDENT VIEW
+            ======================================================= -->
             <?php elseif ($user_role === 'student'): ?>
-                <h3>کلاس شما</h3>
-                <ul>
-                    <?php
-                    $stmt = $pdo->prepare("SELECT c.id, c.name FROM Classes c WHERE c.id = (SELECT class_id FROM users WHERE id = :student_id)");
-                    $stmt->execute(['student_id' => $_SESSION['user_id']]);
-                    $class = $stmt->fetch(PDO::FETCH_ASSOC);
-                    if ($class) {
-                        echo "<li>" . htmlspecialchars($class['name']) . "</li>";
-                    } else {
-                        echo "<li>شما در هیچ کلاسی ثبت‌نام نشده‌اید.</li>";
-                    }
-                    ?>
-                </ul>
-                <h3>جزوات اخیر</h3>
-                <ul>
-                    <?php
+                <?php
+                $stmt = $pdo->prepare("SELECT c.id, c.name FROM classes c WHERE c.id = (SELECT class_id FROM users WHERE id = :student_id)");
+                $stmt->execute(['student_id' => $_SESSION['user_id']]);
+                $student_class = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                $stmt = $pdo->prepare("SELECT points FROM user_points WHERE user_id = ?");
+                $stmt->execute([$_SESSION['user_id']]);
+                $my_points = $stmt->fetchColumn() ?: 0;
+
+                $notes = [];
+                try {
                     $stmt = $pdo->prepare("
-                        SELECT n.title, n.file_path 
-                        FROM Notes n 
-                        JOIN ClassCourses cc ON n.class_course_id = cc.id 
+                        SELECT n.title, n.file_path, n.created_at 
+                        FROM notes n 
+                        JOIN classcourses cc ON n.class_course_id = cc.id 
                         JOIN users u ON u.class_id = cc.class_id 
                         WHERE u.id = :student_id 
-                        ORDER BY n.created_at DESC LIMIT 5
+                        ORDER BY n.created_at DESC LIMIT 6
                     ");
                     $stmt->execute(['student_id' => $_SESSION['user_id']]);
                     $notes = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                    if ($notes) {
-                        foreach ($notes as $note) {
-                            echo "<li><a href='../{$note['file_path']}' download>" . htmlspecialchars($note['title']) . "</a></li>";
-                        }
-                    } else {
-                        echo "<li>جزوه‌ای یافت نشد.</li>";
-                    }
-                    ?>
-                </ul>
-            <?php endif; ?>
-        </div>
-    </div>
+                } catch (PDOException $e) {}
+                ?>
 
-    <div id="classesSection" class="mt-4 dashboard-section" style="display:none;">
-        <div class="container mt-4">
-            <h3>کلاس‌ها و دروس</h3>
-            <div class="class-list">
-                <ul class="list-group">
-                    <?php
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <div class="stat-widget-card">
+                            <div class="stat-icon-wrapper">
+                                <i class="fas fa-school"></i>
+                            </div>
+                            <div class="stat-widget-info">
+                                <div class="stat-widget-label">کلاس تحصیلی شما</div>
+                                <div class="stat-widget-value fs-4 text-white">
+                                    <?php echo $student_class ? htmlspecialchars($student_class['name']) : 'کلاس ثبت نشده'; ?>
+                                </div>
+                                <div class="stat-widget-trend"><span>سال تحصیلی جاری</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="stat-widget-card">
+                            <div class="stat-icon-wrapper">
+                                <i class="fas fa-trophy"></i>
+                            </div>
+                            <div class="stat-widget-info">
+                                <div class="stat-widget-label">مجموع امتیازات باشگاه دانش‌آموزی</div>
+                                <div class="stat-widget-value text-white">
+                                    <?php echo number_format($my_points); ?> <span class="fs-6 text-muted">امتیاز</span>
+                                </div>
+                                <div class="stat-widget-trend">
+                                    <a href="./gamification/" style="color: var(--primary-light);">مشاهده جدول رتبه‌بندی &larr;</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Handouts -->
+                <div class="card p-4 mb-4">
+                    <h5 class="fw-bold text-white mb-3">
+                        <i class="fas fa-file-download me-2 text-primary"></i> جزوات و منابع درسی
+                    </h5>
+                    <div class="row g-3">
+                        <?php if ($notes): ?>
+                            <?php foreach ($notes as $note): ?>
+                                <div class="col-md-6">
+                                    <div class="p-3 rounded-3 d-flex justify-content-between align-items-center" style="background-color: #0f172a; border: 1px solid var(--border-color);">
+                                        <div>
+                                            <strong class="text-white d-block mb-1" style="font-size: 0.9rem;"><?php echo htmlspecialchars($note['title']); ?></strong>
+                                            <small class="text-muted" style="font-size: 0.78rem;">ثبت: <?php echo htmlspecialchars($note['created_at']); ?></small>
+                                        </div>
+                                        <a href="../<?php echo htmlspecialchars($note['file_path']); ?>" download class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-download me-1"></i> دانلود
+                                        </a>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="col-12 text-center py-4 text-muted">جزوه‌ای برای کلاس شما ثبت نشده است.</div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+        </div>
+    </main>
+
+    <!-- ====================================================================
+         4. CLASSES SECTION
+    ==================================================================== -->
+    <div id="classesSection" class="main-content dashboard-section" style="display:none;">
+        <div class="container-fluid p-0">
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                <div>
+                    <h3 class="fw-bold text-white mb-1"><i class="fas fa-chalkboard text-primary me-2"></i> کلاس‌ها و دروس مجازی</h3>
+                    <p class="text-muted m-0">لیست دوره‌ها و تالارهای درس</p>
+                </div>
+                <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('showMainContent').click();">
+                    <i class="fas fa-arrow-right me-1"></i> بازگشت
+                </button>
+            </div>
+
+            <div class="row g-3">
+                <?php
+                try {
                     if ($user_role === 'admin') {
                         $stmt = $pdo->prepare("
                             SELECT cc.id, cc.course_name, c.name AS class_name
-                            FROM ClassCourses cc
-                            JOIN Classes c ON cc.class_id = c.id
+                            FROM classcourses cc
+                            JOIN classes c ON cc.class_id = c.id
                             ORDER BY c.name, cc.course_name ASC
                         ");
                         $stmt->execute();
                     } elseif ($user_role === 'teacher') {
                         $stmt = $pdo->prepare("
                             SELECT cc.id, cc.course_name, c.name AS class_name
-                            FROM ClassCourses cc
-                            JOIN Classes c ON cc.class_id = c.id
-                            JOIN ClassCourseTeachers cct ON cc.id = cct.class_course_id
+                            FROM classcourses cc
+                            JOIN classes c ON cc.class_id = c.id
+                            JOIN classcourseteachers cct ON cc.id = cct.class_course_id
                             WHERE cct.teacher_id = :user_id
                             ORDER BY c.name, cc.course_name ASC
                         ");
@@ -687,376 +1036,774 @@ $csrf_token = $_SESSION['csrf_token'];
                     } else {
                         $stmt = $pdo->prepare("
                             SELECT cc.id, cc.course_name, c.name AS class_name
-                            FROM ClassCourses cc
-                            JOIN Classes c ON cc.class_id = c.id
-                            JOIN users u ON u.class_id = c.id
-                            WHERE u.id = :user_id
+                            FROM classcourses cc
+                            JOIN classes c ON cc.class_id = c.id
+                            WHERE c.id = (SELECT class_id FROM users WHERE id = :user_id)
                             ORDER BY c.name, cc.course_name ASC
                         ");
                         $stmt->execute(['user_id' => $_SESSION['user_id']]);
                     }
                     $courses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    
                     if ($courses) {
                         foreach ($courses as $course) {
-                            echo "<li class='list-group-item'><a href='classes/index.php?course_id={$course['id']}' class='text-decoration-none'>" . htmlspecialchars($course['class_name'] . ' - ' . $course['course_name']) . "</a></li>";
+                            ?>
+                            <div class="col-md-6 col-lg-4">
+                                <div class="card p-3 h-100">
+                                    <h6 class="text-white fw-bold mb-1"><?php echo htmlspecialchars($course['course_name']); ?></h6>
+                                    <p class="text-muted small mb-3"><?php echo htmlspecialchars($course['class_name']); ?></p>
+                                    <a href="classes/index.php?course_id=<?php echo $course['id']; ?>" class="btn btn-sm btn-primary w-100 mt-auto">
+                                        ورود به کلاس
+                                    </a>
+                                </div>
+                            </div>
+                            <?php
                         }
                     } else {
-                        echo "<li class='list-group-item'>هیچ درسی یافت نشد.</li>";
+                        echo '<div class="col-12 text-center py-5 text-muted">درسی یافت نشد.</div>';
                     }
-                    ?>
-                </ul>
+                } catch (PDOException $e) {
+                    echo '<div class="col-12 alert alert-danger">خطا در دریافت لیست دروس: ' . htmlspecialchars($e->getMessage()) . '</div>';
+                }
+                ?>
             </div>
         </div>
     </div>
+
+    <!-- ====================================================================
+         5. GALLERY SECTION
+    ==================================================================== -->
     <?php if ($user_role === 'admin' || $user_role === 'teacher'): ?>
-        <div id="gallerySection" class="mt-4 dashboard-section" style="display:none;text-align:center;">
-            <div class="container mt-4">
-                <h3>مدیریت گالری</h3>
-                <div class="gallery-form mb-4">
-                    <h5>افزودن عکس جدید</h5>
+        <div id="gallerySection" class="main-content dashboard-section" style="display:none;">
+            <div class="container-fluid p-0">
+                <div class="d-flex align-items-center justify-content-between mb-4">
+                    <div>
+                        <h3 class="fw-bold text-white mb-1"><i class="fas fa-images text-primary me-2"></i> مدیریت گالری تصاویر</h3>
+                        <p class="text-muted m-0">بارگذاری و ویرایش تصاویر مدرسه</p>
+                    </div>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('showMainContent').click();">
+                        <i class="fas fa-arrow-right me-1"></i> بازگشت
+                    </button>
+                </div>
+
+                <div class="card p-4 mb-4">
+                    <h5 class="fw-bold text-white mb-3">افزودن عکس جدید</h5>
                     <form id="galleryForm" enctype="multipart/form-data">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
-                        <div class="mb-3">
-                            <label for="galleryTitle" class="form-label">عنوان عکس</label>
-                            <input type="text" class="form-control" id="galleryTitle" name="title">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="galleryTitle" class="form-label">عنوان تصویر</label>
+                                <input type="text" class="form-control" id="galleryTitle" name="title" placeholder="عنوان تصویر" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="galleryImage" class="form-label">انتخاب فایل عکس</label>
+                                <input type="file" class="form-control" id="galleryImage" name="image" accept="image/*" required>
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary px-4">بارگذاری</button>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="galleryImage" class="form-label">انتخاب عکس</label>
-                            <input type="file" class="form-control" id="galleryImage" name="image" accept="image/*"
-                                required>
-                        </div>
-                        <button type="submit" class="btn btn-primary">افزودن عکس</button>
                     </form>
                     <div id="galleryMessage" class="mt-3"></div>
                 </div>
-                <h5>لیست عکس‌ها</h5>
-                <div class="gallery-list">
-                    <!-- gallery content will be loaded here via AJAX -->
-                    <ul class="list-group">
-                        <!-- gallery content will be loaded here via AJAX -->
-                    </ul>
+
+                <div class="card p-4">
+                    <h5 class="fw-bold text-white mb-3">تصاویر ثبت‌شده</h5>
+                    <div class="gallery-list">
+                        <ul class="list-group p-0" style="list-style: none;"></ul>
+                    </div>
                 </div>
             </div>
         </div>
     <?php endif; ?>
+
+    <!-- ====================================================================
+         6. AUDIT LOGS SECTION
+    ==================================================================== -->
     <?php if ($user_role === 'admin'): ?>
-        <div id="logsSection" class="mt-4 dashboard-section" style="display:none;">
-            <div class="container mt-4">
-                <h3>لاگ‌ها</h3>
-                <div id="logsTable"></div>
-                <nav id="logsPagination" class="mt-3"></nav>
+        <div id="logsSection" class="main-content dashboard-section" style="display:none;">
+            <div class="container-fluid p-0">
+                <div class="d-flex align-items-center justify-content-between mb-4">
+                    <div>
+                        <h3 class="fw-bold text-white mb-1"><i class="fas fa-shield-alt text-primary me-2"></i> لاگ‌های امنیتی سیستم</h3>
+                        <p class="text-muted m-0">ثبت تمامی اقدامات و ورودهای کاربران</p>
+                    </div>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('showMainContent').click();">
+                        <i class="fas fa-arrow-right me-1"></i> بازگشت
+                    </button>
+                </div>
+
+                <div class="card p-4">
+                    <div id="logsTable"></div>
+                    <nav id="logsPagination" class="mt-3"></nav>
+                </div>
             </div>
         </div>
     <?php endif; ?>
-    <div id="settingsSection" class="mt-4 dashboard-section" style="display:none;">
-        <div class="container mt-4">
-            <h3>تنظیمات حساب</h3>
 
-            <!-- نمایش توکن اکستنشن -->
-            <div class="alert alert-warning">
-                <h5>🔑 توکن اکستنشن هشدار معلم</h5>
-                <p>این کد رو توی اکستنشن کروم وارد کن تا نوتیفیکیشن با صدای معلم بگیری!</p>
-                <div class="input-group">
-                    <input type="text" class="form-control" value="<?php echo htmlspecialchars($extensionToken); ?>"
-                        readonly id="extensionToken">
-                    <button class="btn btn-outline-primary" type="button" onclick="copyToken()">
-                        <i class="fas fa-copy"></i> کپی
-                    </button>
-                    <button class="btn btn-outline-danger ms-2" type="button" onclick="regenerateToken()">
-                        <i class="fas fa-sync-alt"></i> تولید مجدد
-                    </button>
+    <!-- ====================================================================
+         7. SETTINGS SECTION
+    ==================================================================== -->
+    <div id="settingsSection" class="main-content dashboard-section" style="display:none;">
+        <div class="container-fluid p-0">
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                <div>
+                    <h3 class="fw-bold text-white mb-1"><i class="fas fa-sliders-h text-primary me-2"></i> تنظیمات حساب کاربری</h3>
+                    <p class="text-muted m-0">تغییر رمز عبور و تم رنگی</p>
                 </div>
-                <small class="text-muted">هر بار تولید مجدد = اکستنشن قبلی قطع میشه!</small>
+                <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('showMainContent').click();">
+                    <i class="fas fa-arrow-right me-1"></i> بازگشت
+                </button>
             </div>
 
-            <div class="settings-form">
+            <!-- Theme Customizer -->
+            <div class="card p-4 mb-4">
+                <h5 class="fw-bold text-white mb-2">انتخاب تم رنگی داشبورد</h5>
+                <p class="text-muted small mb-3">رنگ مورد علاقه خود را انتخاب کنید:</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-sm text-white px-3 py-2" onclick="changeTheme('default')" style="background-color: #2563eb; border-radius: 8px;">آبی پیش‌فرض</button>
+                    <button class="btn btn-sm text-white px-3 py-2" onclick="changeTheme('emerald')" style="background-color: #059669; border-radius: 8px;">زمردی</button>
+                    <button class="btn btn-sm text-white px-3 py-2" onclick="changeTheme('purple')" style="background-color: #7c3aed; border-radius: 8px;">بنفش</button>
+                    <button class="btn btn-sm text-white px-3 py-2" onclick="changeTheme('amber')" style="background-color: #d97706; border-radius: 8px;">طلایی</button>
+                    <button class="btn btn-sm text-white px-3 py-2" onclick="changeTheme('rose')" style="background-color: #e11d48; border-radius: 8px;">سرخ</button>
+                </div>
+            </div>
+
+            <!-- Extension Token -->
+            <div class="card p-4 mb-4">
+                <h5 class="fw-bold text-white mb-2">توکن افزونه مرورگر معلم</h5>
+                <p class="text-muted small mb-3">این کد را در اکستنشن کروم وارد نمایید:</p>
+                <div class="input-group mb-2">
+                    <input type="text" class="form-control font-monospace" value="<?php echo htmlspecialchars($extensionToken); ?>" readonly id="extensionToken" style="direction: ltr; text-align: left !important;">
+                    <button class="btn btn-outline-primary" type="button" onclick="copyToken()">کپی توکن</button>
+                    <button class="btn btn-outline-danger ms-2" type="button" onclick="regenerateToken()">تولید مجدد</button>
+                </div>
+            </div>
+
+            <!-- Password Form -->
+            <div class="card p-4">
+                <h5 class="fw-bold text-white mb-3">تغییر کلمه عبور</h5>
                 <div id="settingsMessage"></div>
                 <form id="settingsForm">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
-                    <h5>تغییر رمز عبور</h5>
-                    <!-- بقیه فرم همون قبلی -->
-                    <div class="mb-3">
-                        <label for="currentPassword" class="form-label">رمز عبور فعلی</label>
-                        <input type="password" class="form-control" id="currentPassword" name="current_password">
-                    </div>
-                    <div class="mb-3">
-                        <label for="newPassword" class="form-label">رمز عبور جدید</label>
-                        <input type="password" class="form-control" id="newPassword" name="new_password">
-                    </div>
-                    <div class="mb-3">
-                        <label for="confirmPassword" class="form-label">تکرار رمز عبور جدید</label>
-                        <input type="password" class="form-control" id="confirmPassword" name="confirm_password">
-                    </div>
-
-                    <h5>تغییر نام کاربری</h5>
-                    <div class="mb-3">
-                        <label for="newUsername" class="form-label">نام کاربری جدید</label>
-                        <input type="text" class="form-control" id="newUsername" name="new_username"
-                            placeholder="<?php echo htmlspecialchars($username); ?>">
-                    </div>
-                    <div class="mb-3">
-                        <label for="usernamePassword" class="form-label">رمز عبور فعلی (برای تغییر نام کاربری)</label>
-                        <input type="password" class="form-control" id="usernamePassword" name="username_password">
+                    
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label for="currentPassword" class="form-label">رمز عبور فعلی</label>
+                            <input type="password" class="form-control" id="currentPassword" name="current_password" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="newPassword" class="form-label">رمز عبور جدید</label>
+                            <input type="password" class="form-control" id="newPassword" name="new_password" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="confirmPassword" class="form-label">تکرار رمز عبور جدید</label>
+                            <input type="password" class="form-control" id="confirmPassword" name="confirm_password" required>
+                        </div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary">ذخیره تغییرات</button>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="newUsername" class="form-label">نام کاربری جدید (اختیاری)</label>
+                            <input type="text" class="form-control" id="newUsername" name="new_username" placeholder="<?php echo htmlspecialchars($username); ?>">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="usernamePassword" class="form-label">تایید رمز عبور فعلی</label>
+                            <input type="password" class="form-control" id="usernamePassword" name="username_password">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary px-4">ذخیره تغییرات</button>
                 </form>
             </div>
         </div>
     </div>
 
-    <script>
-
-        function copyToken() {
-            const tokenInput = document.getElementById('extensionToken');
-            tokenInput.select();
-            document.execCommand('copy');
-            alert('توکن کپی شد! حالا برو تو اکستنشن بچسبون 🔥');
-        }
-
-
-        function regenerateToken() {
-            if (!confirm('مطمئنی؟ اکستنشن قبلی دیگه کار نمی‌کنه!')) return;
-
-            fetch('regenerate_token.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: 'csrf_token=<?php echo $csrf_token; ?>'
-            })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) {
-                        document.getElementById('extensionToken').value = data.new_token;
-                        alert('توکن جدید ساخته شد! حالا تو اکستنشن وارد کن');
-                    }
-                });
-        }
-    </script>
-    <div class="modal fade" id="editGalleryModal" tabindex="-1" aria-labelledby="editGalleryModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog">
+    <!-- Edit Gallery Modal -->
+    <div class="modal fade" id="editGalleryModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="editGalleryModalLabel">ویرایش عکس</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title fw-bold text-white">ویرایش عکس</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <form id="editGalleryForm" enctype="multipart/form-data">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                     <input type="hidden" name="id" id="editGalleryId">
                     <div class="modal-body">
                         <div class="mb-3">
-                            <label for="editGalleryTitle" class="form-label">عنوان عکس</label>
-                            <input type="text" class="form-control" id="editGalleryTitle" name="title">
+                            <label for="editGalleryTitle" class="form-label">عنوان تصویر</label>
+                            <input type="text" class="form-control" id="editGalleryTitle" name="title" required>
                         </div>
                         <div class="mb-3">
-                            <label for="editGalleryImage" class="form-label">انتخاب عکس جدید (اختیاری)</label>
+                            <label for="editGalleryImage" class="form-label">عکس جایگزین (اختیاری)</label>
                             <input type="file" class="form-control" id="editGalleryImage" name="image" accept="image/*">
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">بستن</button>
-                        <button type="submit" class="btn btn-primary">ذخیره تغییرات</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                        <button type="submit" class="btn btn-primary">ذخیره</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
+
+    <!-- Footer -->
     <footer>
-        برنامه نویسی شده توسط
-        <a href="https://aminmadani.ir" target="_blank">محمدامین مدنی محمدی</a>
+        ZeroLMS • طراحی و پیاده‌سازی توسط <a href="https://aminmadani.ir" target="_blank">محمدامین مدنی محمدی</a>
     </footer>
+
+    <!-- Bootstrap Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Dashboard Scripts -->
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const clockIcon = document.querySelector('.clock-icon');
-            const watch = document.querySelector('.watch');
+        // Smooth preloader dismiss
+        window.addEventListener('DOMContentLoaded', () => {
+            const loader = document.getElementById('loader');
+            setTimeout(() => {
+                if (loader) {
+                    loader.classList.add('hidden');
+                    setTimeout(() => { loader.style.display = 'none'; }, 500);
+                }
+            }, 850);
+        });
 
-
-            if (clockIcon && watch) {
-                clockIcon.addEventListener('click', () => {
-                    watch.classList.toggle('active');
-                });
-
-                watch.addEventListener('click', () => {
-                    watch.classList.remove('active');
-                });
-            }
+        // Shamsi Date & Clock
+        (function initDateTime() {
+            try {
+                const dateEl = document.getElementById('shamsiDateText');
+                if (dateEl && typeof Intl !== 'undefined') {
+                    const faDate = new Intl.DateTimeFormat('fa-IR', {
+                        dateStyle: 'full',
+                        timeZone: 'Asia/Tehran'
+                    }).format(new Date());
+                    dateEl.textContent = faDate;
+                }
+            } catch(e) {}
 
             function updateTime() {
                 const now = new Date();
                 const hours = String(now.getHours()).padStart(2, '0');
                 const minutes = String(now.getMinutes()).padStart(2, '0');
+                const clockEl = document.getElementById('topbarClock');
+                if (clockEl) clockEl.textContent = `${hours}:${minutes}`;
                 if (document.getElementById('hours')) document.getElementById('hours').textContent = hours;
                 if (document.getElementById('minutes')) document.getElementById('minutes').textContent = minutes;
             }
             setInterval(updateTime, 1000);
             updateTime();
-        });
+        })();
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const sidebar = document.getElementById('sidebar');
-            const hamburger = document.getElementById('hamburger');
-
-            if (hamburger && sidebar) {
-                
-                ['click', 'touchstart'].forEach(eventType => {
-                    hamburger.addEventListener(eventType, (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        sidebar.classList.toggle('show');
-                    }, { passive: false });
-                });
+        // Theme Switcher
+        function changeTheme(themeName) {
+            if (themeName === 'default') {
+                document.documentElement.removeAttribute('data-theme');
+                localStorage.removeItem('zero_lms_theme');
+            } else {
+                document.documentElement.setAttribute('data-theme', themeName);
+                localStorage.setItem('zero_lms_theme', themeName);
             }
+        }
+        (function loadSavedTheme() {
+            const saved = localStorage.getItem('zero_lms_theme');
+            if (saved) document.documentElement.setAttribute('data-theme', saved);
+        })();
 
-            if (sidebar) {
-                sidebar.querySelectorAll('a').forEach(link => {
-                    link.addEventListener('click', () => {
-                        if (window.innerWidth < 992) sidebar.classList.remove('show');
-                    });
-                });
-            }
-
-            
-            ['click', 'touchstart'].forEach(eventType => {
-                document.body.addEventListener(eventType, (e) => {
-                    if (window.innerWidth < 992 && sidebar && hamburger) {
-                        if (!sidebar.contains(e.target) && !hamburger.contains(e.target) && sidebar.classList.contains('show')) {
-                            sidebar.classList.remove('show');
-                        }
-                    }
-                });
-            });
-        });
-
-
-
+        // Navigation
         function showSection(sectionId) {
             document.querySelectorAll('.dashboard-section').forEach(sec => {
-                sec.style.display = sec.id === sectionId ? 'block' : 'none';
+                sec.style.display = (sec.id === sectionId) ? 'block' : 'none';
+            });
+            document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            if (window.innerWidth < 992) {
+                document.getElementById('sidebar')?.classList.remove('show');
+            }
+        }
+
+        document.getElementById('showMainContent')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            this.classList.add('active');
+            showSection('mainContent');
+        });
+        document.getElementById('showClasses')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            this.classList.add('active');
+            showSection('classesSection');
+        });
+        document.getElementById('showSettings')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            this.classList.add('active');
+            showSection('settingsSection');
+            const msg = document.getElementById('settingsMessage');
+            if (msg) msg.innerHTML = '';
+        });
+        document.getElementById('showGallery')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            this.classList.add('active');
+            showSection('gallerySection');
+            loadGallery();
+        });
+        document.getElementById('showLogs')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            this.classList.add('active');
+            showSection('logsSection');
+            loadLogs(1);
+        });
+
+        // Mobile Hamburger
+        const hamburger = document.getElementById('hamburger');
+        const sidebar = document.getElementById('sidebar');
+        if (hamburger && sidebar) {
+            hamburger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                sidebar.classList.toggle('show');
+            });
+            document.addEventListener('click', (e) => {
+                if (window.innerWidth < 992 && !sidebar.contains(e.target) && !hamburger.contains(e.target)) {
+                    sidebar.classList.remove('show');
+                }
             });
         }
 
-
-
-        <?php if ($user_role === 'admin' || $user_role === 'teacher'): ?>
-            document.getElementById('showGallery')?.addEventListener('click', function (e) {
-                e.preventDefault();
-                showSection('gallerySection');
-                if (document.getElementById('galleryMessage')) document.getElementById('galleryMessage').innerHTML = '';
-                loadGallery();
+        // Apple Watch Modal
+        document.querySelectorAll('.clock-icon').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelector('.watch')?.classList.toggle('active');
             });
+        });
+        document.querySelector('.watch')?.addEventListener('click', function() {
+            this.classList.remove('active');
+        });
 
-            document.getElementById('galleryForm')?.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const formData = new FormData(document.getElementById('galleryForm'));
-                formData.append('action', 'upload');
-                try {
-                    const response = await fetch('gallery.php', {
-                        method: 'POST',
-                        body: formData,
-                        cache: 'no-cache'
-                    });
-                    if (!response.ok) throw new Error('خطای شبکه: ' + response.status);
-                    const result = await response.json();
-                    const galleryMessage = document.getElementById('galleryMessage');
-                    if (galleryMessage) {
-                        galleryMessage.innerHTML = `<div class="alert alert-${result.success ? 'success' : 'danger'} alert-dismissible fade show" role="alert">
-                        ${result.success ? result.message : 'خطا: ' + result.error}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>`;
-                    }
-                    if (result.success) {
-                        document.getElementById('galleryForm').reset();
-                        loadGallery();
-                    }
-                } catch (err) {
-                    if (document.getElementById('galleryMessage')) {
-                        document.getElementById('galleryMessage').innerHTML = `<div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        خطا در ارتباط با سرور: ${err.message}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>`;
-                    }
+        // Copy Token Shortcut
+        function copyExtensionQuickToken() {
+            const token = "<?php echo htmlspecialchars($extensionToken); ?>";
+            navigator.clipboard.writeText(token).then(() => {
+                alert('توکن افزونه کپی شد: \n' + token);
+            }).catch(() => {
+                prompt('توکن افزونه:', token);
+            });
+        }
+
+        function copyToken() {
+            const tokenInput = document.getElementById('extensionToken');
+            if (tokenInput) {
+                tokenInput.select();
+                document.execCommand('copy');
+                alert('توکن کپی شد.');
+            }
+        }
+
+        function regenerateToken() {
+            if (!confirm('آیا از بازتولید توکن مطمئن هستید؟')) return;
+            fetch('regenerate_token.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'csrf_token=<?php echo $csrf_token; ?>'
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('extensionToken').value = data.new_token;
+                    alert('توکن جدید تولید شد.');
                 }
             });
+        }
 
-            document.getElementById('editGalleryForm')?.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const formData = new FormData(document.getElementById('editGalleryForm'));
-                formData.append('action', 'edit');
-                try {
-                    const response = await fetch('gallery.php', {
-                        method: 'POST',
-                        body: formData,
-                        cache: 'no-cache'
-                    });
-                    if (!response.ok) throw new Error('خطای شبکه: ' + response.status);
-                    const result = await response.json();
-                    const galleryMessage = document.getElementById('galleryMessage');
-                    if (galleryMessage) {
-                        galleryMessage.innerHTML = `<div class="alert alert-${result.success ? 'success' : 'danger'} alert-dismissible fade show" role="alert">
-                        ${result.success ? result.message : 'خطا: ' + result.error}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>`;
-                    }
-                    if (result.success) {
-                        bootstrap.Modal.getInstance(document.getElementById('editGalleryModal')).hide();
-                        loadGallery();
-                    }
-                } catch (err) {
-                    if (document.getElementById('galleryMessage')) {
-                        document.getElementById('galleryMessage').innerHTML = `<div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        خطا در ارتباط با سرور: ${err.message}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>`;
-                    }
-                }
-            });
-        <?php endif; ?>
-
-        <?php if ($user_role === 'admin'): ?>
-
-
-            document.getElementById('showLogs')?.addEventListener('click', function (e) {
-                e.preventDefault();
-                showSection('logsSection');
-                loadLogs(1);
-            });
-        <?php endif; ?>
-
-
-
-
+        // Settings Form Submission
         document.getElementById('settingsForm')?.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const formData = new FormData(document.getElementById('settingsForm'));
+            const formData = new FormData(e.target);
             try {
                 const response = await fetch('update_settings.php', {
                     method: 'POST',
                     body: formData,
                     cache: 'no-cache'
                 });
-                if (!response.ok) throw new Error('خطای شبکه: ' + response.status);
                 const result = await response.json();
-                const settingsMessage = document.getElementById('settingsMessage');
-                if (settingsMessage) {
-                    settingsMessage.innerHTML = `<div class="alert alert-${result.success ? 'success' : 'danger'} alert-dismissible fade show" role="alert">
+                const msg = document.getElementById('settingsMessage');
+                if (msg) {
+                    msg.innerHTML = `<div class="alert alert-${result.success ? 'success' : 'danger'} alert-dismissible fade show">
                         ${result.success ? result.message : 'خطا: ' + (result.error || 'نامشخص')}
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>`;
                 }
-                if (result.success) {
-                    document.getElementById('settingsForm').reset();
-                }
+                if (result.success) e.target.reset();
             } catch (err) {
-                if (document.getElementById('settingsMessage')) {
-                    document.getElementById('settingsMessage').innerHTML = `<div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        خطا در ارتباط با سرور: ${err.message}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>`;
-                }
+                const msg = document.getElementById('settingsMessage');
+                if (msg) msg.innerHTML = `<div class="alert alert-danger">خطا در ارتباط با سرور: ${err.message}</div>`;
             }
         });
+
+        // Gallery Functions
+        async function loadGallery() {
+            try {
+                const response = await fetch('fetch_gallery.php', { cache: 'no-cache' });
+                if (!response.ok) throw new Error('خطای شبکه: ' + response.status);
+                const data = await response.json();
+                let list = document.querySelector('.gallery-list ul');
+                if (!list) return;
+
+                function escapeHtml(text) {
+                    const div = document.createElement('div');
+                    div.textContent = text || '';
+                    return div.innerHTML;
+                }
+
+                list.innerHTML = '';
+                if (!data.images || data.images.length === 0) {
+                    list.innerHTML = '<li class="p-4 text-center text-muted">تصویری ثبت نشده است.</li>';
+                } else {
+                    data.images.forEach(image => {
+                        const li = document.createElement('li');
+                        li.className = 'p-3 mb-2 rounded-3 d-flex align-items-center justify-content-between';
+                        li.style.backgroundColor = '#0f172a';
+                        li.style.border = '1px solid var(--border-color)';
+                        const safeTitle = escapeHtml(image.title || 'بدون عنوان');
+                        const safeAuthor = escapeHtml(image.uploaded_by || 'ناشناس');
+                        const safeDate = escapeHtml(image.created_at || '');
+                        const safePath = encodeURI(image.image_path || '');
+                        li.innerHTML = `
+                            <div class="d-flex align-items-center gap-3">
+                                <img src="../${safePath}" alt="${safeTitle}" style="width: 70px; height: 50px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border-color);">
+                                <div>
+                                    <strong class="text-white d-block">${safeTitle}</strong>
+                                    <small class="text-muted">${safeAuthor} • ${safeDate}</small>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-warning btn-sm edit-gallery-btn" data-id="${parseInt(image.id)}" data-title="${safeTitle}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-danger btn-sm delete-gallery-btn" data-id="${parseInt(image.id)}" data-path="${safePath}">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        `;
+                        list.appendChild(li);
+                    });
+
+                    document.querySelectorAll('.edit-gallery-btn').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            document.getElementById('editGalleryId').value = btn.getAttribute('data-id');
+                            document.getElementById('editGalleryTitle').value = btn.getAttribute('data-title');
+                            new bootstrap.Modal(document.getElementById('editGalleryModal')).show();
+                        });
+                    });
+
+                    document.querySelectorAll('.delete-gallery-btn').forEach(btn => {
+                        btn.addEventListener('click', async () => {
+                            if (!confirm('آیا از حذف این تصویر مطمئن هستید؟')) return;
+                            const fd = new FormData();
+                            fd.append('action', 'delete');
+                            fd.append('id', btn.getAttribute('data-id'));
+                            fd.append('image_path', btn.getAttribute('data-path'));
+                            fd.append('csrf_token', '<?php echo $csrf_token; ?>');
+                            const res = await fetch('gallery.php', { method: 'POST', body: fd });
+                            const r = await res.json();
+                            if (r.success) loadGallery();
+                        });
+                    });
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        document.getElementById('galleryForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            fd.append('action', 'upload');
+            const res = await fetch('gallery.php', { method: 'POST', body: fd });
+            const r = await res.json();
+            const msg = document.getElementById('galleryMessage');
+            if (msg) {
+                msg.innerHTML = `<div class="alert alert-${r.success ? 'success' : 'danger'} alert-dismissible fade show">
+                    ${r.success ? r.message : 'خطا: ' + r.error}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>`;
+            }
+            if (r.success) {
+                e.target.reset();
+                loadGallery();
+            }
+        });
+
+        document.getElementById('editGalleryForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            fd.append('action', 'edit');
+            const res = await fetch('gallery.php', { method: 'POST', body: fd });
+            const r = await res.json();
+            if (r.success) {
+                bootstrap.Modal.getInstance(document.getElementById('editGalleryModal')).hide();
+                loadGallery();
+            }
+        });
+
+        // Logs Functions
+        async function loadLogs(page = 1) {
+            try {
+                const response = await fetch(`fetch_logs.php?page=${page}`, { cache: 'no-cache' });
+                if (!response.ok) throw new Error('خطای شبکه: ' + response.status);
+                const data = await response.json();
+                let html = `
+                    <div class="table-responsive">
+                        <table class="table text-center align-middle m-0">
+                            <thead>
+                                <tr>
+                                    <th style="width: 60px;">#</th>
+                                    <th>کاربر</th>
+                                    <th>عملیات</th>
+                                    <th>بخش هدف</th>
+                                    <th>شناسه هدف</th>
+                                    <th>تاریخ و زمان</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                if (!data.logs || data.logs.length === 0) {
+                    html += `<tr><td colspan="6" class="py-4 text-muted">رویدادی یافت نشد.</td></tr>`;
+                } else {
+                    data.logs.forEach(log => {
+                        html += `
+                            <tr>
+                                <td>${log.id}</td>
+                                <td><span class="fw-bold text-white">${log.username || 'سیستم'}</span></td>
+                                <td><span class="badge bg-secondary text-white px-2 py-1">${log.action}</span></td>
+                                <td><span class="badge bg-dark border border-secondary text-white px-2 py-1">${log.target_type}</span></td>
+                                <td>${log.target_id || '-'}</td>
+                                <td class="text-sub small">${log.created_at}</td>
+                            </tr>`;
+                    });
+                }
+                html += `</tbody></table></div>`;
+                
+                const tableEl = document.getElementById('logsTable');
+                if (tableEl) tableEl.innerHTML = html;
+
+                const totalPages = data.totalPages || 1;
+                const currentPage = data.page || 1;
+                let pagHtml = '<ul class="pagination justify-content-center flex-wrap mt-4 gap-1">';
+                if (totalPages > 1) {
+                    if (currentPage > 1) {
+                        pagHtml += `<li class="page-item"><a class="page-link bg-dark text-white border-secondary" href="#" onclick="loadLogs(${currentPage - 1});return false;">قبلی</a></li>`;
+                    }
+                    let start = Math.max(1, currentPage - 2);
+                    let end = Math.min(totalPages, currentPage + 2);
+                    for (let p = start; p <= end; p++) {
+                        const active = (p === currentPage);
+                        pagHtml += `<li class="page-item ${active ? 'active' : ''}">
+                            <a class="page-link ${active ? 'bg-primary text-white border-primary' : 'bg-dark text-white border-secondary'}" href="#" onclick="loadLogs(${p});return false;">${p}</a>
+                        </li>`;
+                    }
+                    if (currentPage < totalPages) {
+                        pagHtml += `<li class="page-item"><a class="page-link bg-dark text-white border-secondary" href="#" onclick="loadLogs(${currentPage + 1});return false;">بعدی</a></li>`;
+                    }
+                }
+                pagHtml += '</ul>';
+                const pagEl = document.getElementById('logsPagination');
+                if (pagEl) pagEl.innerHTML = pagHtml;
+            } catch (err) {
+                const tableEl = document.getElementById('logsTable');
+                if (tableEl) tableEl.innerHTML = `<div class="alert alert-danger">خطا در دریافت لاگ‌ها: ${err.message}</div>`;
+            }
+        }
+
+        // ====================================================================
+        // FEEDBACK POPUP CONTROLLER
+        // Appears a few seconds after login, disappears permanently after submit until next login
+        // ====================================================================
+        (function initFeedbackModal() {
+            const feedbackPopup = document.getElementById('feedbackPopup');
+            if (!feedbackPopup) return;
+
+            const sessionId = "<?php echo session_id(); ?>";
+            const storageKey = 'zerolms_feedback_submitted_' + sessionId;
+            const dismissKey = 'zerolms_feedback_temp_dismiss_' + sessionId;
+
+            // Do not show if already submitted in this login session
+            if (sessionStorage.getItem(storageKey) === 'true') {
+                return;
+            }
+
+            // Do not show if temporarily dismissed during this specific page view
+            if (sessionStorage.getItem(dismissKey) === 'true') {
+                return;
+            }
+
+            // Dynamic rating star labels
+            const ratingLabels = {
+                '5': 'عالی! 🌟',
+                '4': 'خیلی خوب 👍',
+                '3': 'خوب 🙂',
+                '2': 'متوسط 😐',
+                '1': 'نیاز به بهبود ⚠️'
+            };
+
+            const ratingInputs = feedbackPopup.querySelectorAll('input[name="rating"]');
+            const ratingDescEl = document.getElementById('ratingDesc');
+            ratingInputs.forEach(input => {
+                input.addEventListener('change', (e) => {
+                    if (ratingDescEl && ratingLabels[e.target.value]) {
+                        ratingDescEl.textContent = ratingLabels[e.target.value];
+                    }
+                });
+            });
+
+            // Display popup after 4 seconds of entering dashboard
+            setTimeout(() => {
+                if (sessionStorage.getItem(storageKey) === 'true') return;
+                if (sessionStorage.getItem(dismissKey) === 'true') return;
+
+                feedbackPopup.classList.add('visible');
+                feedbackPopup.setAttribute('aria-hidden', 'false');
+            }, 4000);
+
+            // Temporary dismissal (closed by user for current pageview, but will show again on refresh if not submitted)
+            function dismissFeedback() {
+                feedbackPopup.classList.remove('visible');
+                feedbackPopup.setAttribute('aria-hidden', 'true');
+                sessionStorage.setItem(dismissKey, 'true');
+            }
+
+            const closeBtn = document.getElementById('closeFeedbackBtn');
+            const laterBtn = document.getElementById('feedbackLaterBtn');
+            if (closeBtn) closeBtn.addEventListener('click', dismissFeedback);
+            if (laterBtn) laterBtn.addEventListener('click', dismissFeedback);
+
+            // Handle asynchronous form submission
+            const form = document.getElementById('dashboardFeedbackForm');
+            if (form) {
+                form.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const submitBtn = document.getElementById('feedbackSubmitBtn');
+                    const origBtnText = submitBtn.innerHTML;
+
+                    const ratingVal = form.querySelector('input[name="rating"]:checked')?.value || '5';
+                    const commentVal = document.getElementById('feedbackComment')?.value || '';
+                    const csrfVal = form.querySelector('input[name="csrf_token"]')?.value || '';
+
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> در حال ثبت...';
+
+                    try {
+                        const formData = new FormData();
+                        formData.append('csrf_token', csrfVal);
+                        formData.append('rating', ratingVal);
+                        formData.append('comment', commentVal);
+
+                        const response = await fetch('save_feedback.php', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const data = await response.json();
+
+                        if (data.success) {
+                            // Lock permanently for THIS login session
+                            sessionStorage.setItem(storageKey, 'true');
+
+                            // Show sleek success state
+                            document.getElementById('feedbackFormContent')?.classList.add('d-none');
+                            document.getElementById('feedbackSuccessState')?.classList.remove('d-none');
+
+                            setTimeout(() => {
+                                feedbackPopup.classList.remove('visible');
+                                feedbackPopup.setAttribute('aria-hidden', 'true');
+                                setTimeout(() => {
+                                    feedbackPopup.remove();
+                                }, 400);
+                            }, 1800);
+                        } else {
+                            alert(data.error || 'خطا در ثبت بازخورد.');
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = origBtnText;
+                        }
+                    } catch (err) {
+                        console.error('Feedback error:', err);
+                        alert('خطا در برقراری ارتباط با سرور.');
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = origBtnText;
+                    }
+                });
+            }
+        })();
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Interactive Feedback Popup Modal Card -->
+    <?php if (empty($_SESSION['feedback_submitted'])): ?>
+    <div class="feedback-popup-container" id="feedbackPopup" aria-hidden="true">
+        <button type="button" class="feedback-close-btn" id="closeFeedbackBtn" title="بستن" aria-label="بستن">
+            <i class="fas fa-times"></i>
+        </button>
+
+        <div id="feedbackFormContent">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <div class="feedback-icon-badge">
+                    <i class="fas fa-star text-warning"></i>
+                </div>
+                <div>
+                    <h6 class="m-0 fw-bold text-white" style="font-size: 0.95rem;">بازخورد شما درباره سامانه</h6>
+                    <small style="color: #94a3b8; font-size: 0.76rem;">تجربه شما برای بهبود ZeroLMS ارزشمند است</small>
+                </div>
+            </div>
+
+            <form id="dashboardFeedbackForm">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+                
+                <div class="feedback-rating-section my-3 text-center">
+                    <div class="rating-stars-wrapper" id="ratingStars">
+                        <input type="radio" id="star5" name="rating" value="5" checked>
+                        <label for="star5" title="عالی (۵ ستاره)"><i class="fas fa-star"></i></label>
+                        
+                        <input type="radio" id="star4" name="rating" value="4">
+                        <label for="star4" title="خیلی خوب (۴ ستاره)"><i class="fas fa-star"></i></label>
+                        
+                        <input type="radio" id="star3" name="rating" value="3">
+                        <label for="star3" title="خوب (۳ ستاره)"><i class="fas fa-star"></i></label>
+                        
+                        <input type="radio" id="star2" name="rating" value="2">
+                        <label for="star2" title="متوسط (۲ ستاره)"><i class="fas fa-star"></i></label>
+                        
+                        <input type="radio" id="star1" name="rating" value="1">
+                        <label for="star1" title="ضعیف (۱ ستاره)"><i class="fas fa-star"></i></label>
+                    </div>
+                    <div class="rating-label-text" id="ratingDesc">عالی! 🌟</div>
+                </div>
+
+                <div class="mb-3">
+                    <textarea 
+                        name="comment" 
+                        id="feedbackComment" 
+                        rows="2" 
+                        class="form-control feedback-textarea" 
+                        placeholder="نظر، انتقاد یا پیشنهادی دارید؟ (اختیاری)"></textarea>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <button type="submit" class="btn btn-primary btn-sm flex-grow-1 py-2 fw-semibold" id="feedbackSubmitBtn">
+                        <i class="fas fa-paper-plane me-1"></i>
+                        <span>ثبت نظر و امتیاز</span>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm py-2 px-3" id="feedbackLaterBtn" style="border-color: #334155; color: #94a3b8;">
+                        بعداً
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div id="feedbackSuccessState" class="text-center py-3 d-none">
+            <div class="feedback-success-icon mb-2">
+                <i class="fas fa-check-circle text-success" style="font-size: 2.2rem;"></i>
+            </div>
+            <h6 class="text-white fw-bold mb-1">با تشکر از شما!</h6>
+            <p class="m-0" style="color: #cbd5e1; font-size: 0.82rem;">نظر و امتیاز شما با موفقیت ثبت شد.</p>
+        </div>
+    </div>
+    <?php endif; ?>
 </body>
 
 </html>

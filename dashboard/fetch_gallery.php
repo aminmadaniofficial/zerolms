@@ -1,10 +1,27 @@
 <?php
+/**
+ *     _____                    __   __  ___ _____
+ *    /__  /  ___  _________   / /  /  |/  // ___/
+ *      / /  / _ \/ ___/ __ \ / /  / /|_/ / \__ \ 
+ *     / /__/  __/ /  / /_/ // /__/ /  / / ___/ / 
+ *    /____/\___/_/   \____//____/_/  /_/ /____/  
+ * 
+ * ------------------------------------------------------------
+ *  System      : Zero LMS Core Engine
+ *  Author      : Amin Madani
+ *  Created     : 2026
+ *  Notice      : Unauthorized copying or modification of this file,
+ *                via any medium is strictly prohibited.
+ * ------------------------------------------------------------
+ */
+
 session_start();
 require_once '../db.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache');
 
+// Access authorization for admin and teacher roles
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'teacher'])) {
     http_response_code(403);
     echo json_encode(['success' => false, 'error' => 'دسترسی غیرمجاز']);
@@ -12,6 +29,7 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'teac
 }
 
 try {
+    // Fetch all gallery records ordered chronologically descending
     $stmt = $pdo->prepare("
         SELECT g.id, g.image_path, g.title, g.created_at, u.username AS uploaded_by
         FROM gallery g

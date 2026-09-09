@@ -1,21 +1,37 @@
 <?php
+/**
+ *     _____                    __   __  ___ _____
+ *    /__  /  ___  _________   / /  /  |/  // ___/
+ *      / /  / _ \/ ___/ __ \ / /  / /|_/ / \__ \ 
+ *     / /__/  __/ /  / /_/ // /__/ /  / / ___/ / 
+ *    /____/\___/_/   \____//____/_/  /_/ /____/  
+ * 
+ * ------------------------------------------------------------
+ *  System      : Zero LMS Core Engine
+ *  Author      : Amin Madani
+ *  Created     : 2026
+ *  Notice      : Unauthorized copying or modification of this file,
+ *                via any medium is strictly prohibited.
+ * ------------------------------------------------------------
+ */
+
 header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: https://bahonarkaraj.ir');
+header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET');
 header('Access-Control-Allow-Headers: *');
-header('Cache-Control: no-cache');
 
 require_once '../../../db.php'; 
 
 $token = $_GET['token'] ?? '';
 
-if (empty($token) || strlen($token) !== 32 || !ctype_xdigit(strtolower($token))) {
+// Check token format validity
+if (empty($token) || strlen($token) !== 32) {
     echo json_encode(['success' => false, 'error' => 'invalid_token']);
     exit;
 }
 
 try {
-    $stmt = $pdo->prepare("SELECT id, name FROM users WHERE extension_token = ? AND role = 'student' LIMIT 1");
+    $stmt = $pdo->prepare("SELECT id, name FROM users WHERE extension_token = ? LIMIT 1");
     $stmt->execute([$token]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -32,3 +48,4 @@ try {
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => 'server_error']);
 }
+?>

@@ -1,21 +1,45 @@
 <?php
+/**
+ *     _____                    __   __  ___ _____
+ *    /__  /  ___  _________   / /  /  |/  // ___/
+ *      / /  / _ \/ ___/ __ \ / /  / /|_/ / \__ \ 
+ *     / /__/  __/ /  / /_/ // /__/ /  / / ___/ / 
+ *    /____/\___/_/   \____//____/_/  /_/ /____/  
+ * 
+ * ------------------------------------------------------------
+ *  System      : Zero LMS Core Engine
+ *  Author      : Amin Madani
+ *  Created     : 2026
+ *  Notice      : Unauthorized copying or modification of this file,
+ *                via any medium is strictly prohibited.
+ * ------------------------------------------------------------
+ */
+
 session_start();
 require_once '../db.php';
 
+/**
+ * Sanitize text strings for HTML output escaping.
+ * 
+ * @param string|null $string String input
+ * @return string Escaped output string
+ */
 function e($string) {
     return htmlspecialchars($string ?? '', ENT_QUOTES, 'UTF-8');
 }
 
+// Active UI language selection and text orientation
 $lang = $_SESSION['lang'] ?? 'fa';
 $dir = $lang === 'fa' ? 'rtl' : 'ltr';
 
 $teachers = [];
 if ($pdo) {
-    // کوئری آپدیت شده: دریافت ستون‌های نام و تخصص انگلیسی
+    // Updated Query: Fetch both Persian and English name and specialty columns
     $stmt = $pdo->query("SELECT u.id, u.name, u.name_en, t.specialty, t.specialty_en, t.profile_image FROM teachers t JOIN users u ON t.user_id = u.id");
     $teachers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+// Localized strings
 $t_text = [
     'fa' => ['title' => 'لیست اساتید و کادر آموزشی', 'home' => 'خانه', 'view' => 'مشاهده پروفایل'],
     'en' => ['title' => 'Faculty & Teachers List', 'home' => 'Home', 'view' => 'View Profile']
@@ -35,6 +59,7 @@ $t_text = [
     </style>
 </head>
 <body>
+    <!-- Main Header -->
     <header class="bg-white shadow-sm sticky top-0 z-50 py-4">
         <div class="container mx-auto px-4 max-w-7xl flex justify-between items-center">
             <a href="../index.php" class="flex items-center gap-3">
@@ -47,6 +72,7 @@ $t_text = [
         </div>
     </header>
 
+    <!-- Faculty List Grid -->
     <main class="py-16">
         <div class="container mx-auto px-4 max-w-7xl">
             <h1 class="text-3xl font-black text-slate-800 mb-12 text-center"><?= $t_text['title'] ?></h1>
@@ -54,7 +80,7 @@ $t_text = [
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                 <?php foreach ($teachers as $teacher): ?>
                     <?php 
-                        // بررسی زبان و جایگذاری مقادیر
+                        // Verify current language and assign appropriate localized values
                         $t_name = ($lang === 'en' && !empty($teacher['name_en'])) ? $teacher['name_en'] : $teacher['name'];
                         $t_spec = ($lang === 'en' && !empty($teacher['specialty_en'])) ? $teacher['specialty_en'] : ($teacher['specialty'] ?? 'تخصص تعریف نشده');
                     ?>

@@ -1,29 +1,35 @@
 <?php
+/**
+ *     _____                    __   __  ___ _____
+ *    /__  /  ___  _________   / /  /  |/  // ___/
+ *      / /  / _ \/ ___/ __ \ / /  / /|_/ / \__ \ 
+ *     / /__/  __/ /  / /_/ // /__/ /  / / ___/ / 
+ *    /____/\___/_/   \____//____/_/  /_/ /____/  
+ * 
+ * ------------------------------------------------------------
+ *  System      : Zero LMS Core Engine
+ *  Author      : Amin Madani
+ *  Created     : 2026
+ *  Notice      : Unauthorized copying or modification of this file,
+ *                via any medium is strictly prohibited.
+ * ------------------------------------------------------------
+ */
+
+// Initialize PHP session scope
 session_start();
 require_once './db.php'; 
+require_once './log.php'; 
 
-
+// Extract user identity from session or fall back to cookie/default
 $user_id = $_SESSION['user_id'] ?? $_COOKIE['user_id'] ?? -1;
 
-
-function addLog($pdo, $user_id, $action, $target_type='logout', $target_id=-1){
-    $stmt = $pdo->prepare("INSERT INTO logs (user_id, action, target_type, target_id, created_at) 
-                           VALUES (:user_id, :action, :target_type, :target_id, NOW())");
-    $stmt->execute([
-        'user_id' => $user_id,
-        'action' => $action,
-        'target_type' => $target_type,
-        'target_id' => $target_id
-    ]);
-}
-
-
+// Log user logout activity into audit logs
 addLog($pdo, $user_id, 'logout');
 
-
+// Unset all active in-memory session variables
 $_SESSION = [];
 
-
+// Expire and clear session cookie if session cookies are enabled
 if (ini_get("session.use_cookies")) {
     $params = session_get_cookie_params();
     setcookie(session_name(), '', time() - 42000,
@@ -32,15 +38,15 @@ if (ini_get("session.use_cookies")) {
     );
 }
 
-
+// Expire persistent user authentication cookies
 setcookie('user_id', '', time() - 3600, "/");
 setcookie('username', '', time() - 3600, "/");
 setcookie('role', '', time() - 3600, "/");
 
-
+// Destroy server-side session data store
 session_destroy();
 
-
+// Redirect user back to home landing page
 header("Location: ./index.php");
 exit();
 ?>

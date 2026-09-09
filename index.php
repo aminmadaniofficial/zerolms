@@ -1,25 +1,45 @@
 <?php
+/**
+ *     _____                    __   __  ___ _____
+ *    /__  /  ___  _________   / /  /  |/  // ___/
+ *      / /  / _ \/ ___/ __ \ / /  / /|_/ / \__ \ 
+ *     / /__/  __/ /  / /_/ // /__/ /  / / ___/ / 
+ *    /____/\___/_/   \____//____/_/  /_/ /____/  
+ * 
+ * ------------------------------------------------------------
+ *  System      : Zero LMS Core Engine
+ *  Author      : Amin Madani
+ *  Created     : 2026
+ *  Notice      : Unauthorized copying or modification of this file,
+ *                via any medium is strictly prohibited.
+ * ------------------------------------------------------------
+ */
+
+
+
 session_start();
 
-
-
-
-
+/**
+ * Escape HTML special characters to prevent XSS attacks.
+ * 
+ * @param string|null $string Input text to escape
+ * @return string Safe HTML escaped string
+ */
 function e($string)
 {
     return htmlspecialchars($string ?? '', ENT_QUOTES, 'UTF-8');
 }
 
-
-
-
+// Initialize database variables
 $pdo = null;
 $db_error = false;
 
+// Attempt to connect to database if db.php exists
 try {
     if (file_exists('db.php')) {
         require_once 'db.php';
         
+        // Configure PDO to throw exceptions on database errors
         if ($pdo) {
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         }
@@ -29,62 +49,63 @@ try {
     error_log("Database Connection Failed: " . $e->getMessage());
 }
 
-
-
-
+// Include Jalali Date helper library if available
 if (file_exists('jdf.php')) {
     require_once 'jdf.php';
 }
 
+/**
+ * Convert a Gregorian date string to Jalali (Shamsi) date format.
+ * 
+ * @param string $date_str Standard date string
+ * @return string Formatted Jalali date or fallback date string
+ */
 function toJalali($date_str) {
     if (empty($date_str)) return '';
     try {
-        
         $timestamp = strtotime($date_str);
-        
-        
         if (function_exists('jdate')) {
             return jdate('j F Y', $timestamp);
         }
-        
-        
         return $date_str; 
     } catch (Exception $e) {
         return $date_str;
     }
 }
 
-
-
-
+// Containers for page data
 $posts = [];
 $teachers = [];
 
+// Fetch latest posts and active teachers from database
 if ($pdo && !$db_error) {
     try {
+        // Query the latest 3 posts for the news section
         $stmtP = $pdo->prepare("SELECT id, title, author_name, image_path, created_at FROM posts ORDER BY created_at DESC LIMIT 3");
         $stmtP->execute();
         $posts = $stmtP->fetchAll(PDO::FETCH_ASSOC);
 
-$stmtT = $pdo->prepare("SELECT u.id, u.name, u.name_en, t.specialty, t.specialty_en, t.profile_image FROM teachers t JOIN users u ON t.user_id = u.id LIMIT 12");
-$stmtT->execute();
-$teachers = $stmtT->fetchAll(PDO::FETCH_ASSOC);
+        // Query up to 12 teachers with joined user details
+        $stmtT = $pdo->prepare("SELECT u.id, u.name, u.name_en, t.specialty, t.specialty_en, t.profile_image FROM teachers t JOIN users u ON t.user_id = u.id LIMIT 12");
+        $stmtT->execute();
+        $teachers = $stmtT->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         error_log("Query Failed: " . $e->getMessage());
     }
 }
 
-
-
-
+// Handle language switching via GET parameter and preserve URL clean state
 if (isset($_GET['lang']) && in_array($_GET['lang'], ['fa', 'en'])) {
     $_SESSION['lang'] = $_GET['lang'];
     header("Location: " . strtok($_SERVER["REQUEST_URI"], '?'));
     exit;
 }
+
+// Define active language and text direction
 $lang = $_SESSION['lang'] ?? 'fa';
 $dir = $lang === 'fa' ? 'rtl' : 'ltr';
 
+// Internationalization (i18n) dictionary for Persian and English content
 $i18n = [
     'fa' => [
         'font' => 'font-[Vazirmatn]',
@@ -276,6 +297,8 @@ $i18n = [
         ]
     ]
 ];
+
+// Assign active language translation array
 $t = $i18n[$lang];
 ?>
 <!DOCTYPE html>
@@ -286,20 +309,25 @@ $t = $i18n[$lang];
     <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
 
-    <!-- ========================================== -->
-    <!-- COMPLETE SEO & META TAGS                   -->
-    <!-- ========================================== -->
+    <!-- SEO Meta Tags -->
     <title><?php echo e($t['seo']['title']); ?></title>
     <meta name="description" content="<?php echo e($t['seo']['desc']); ?>">
     <meta name="keywords" content="<?php echo e($t['seo']['keywords']); ?>">
     <meta name="author" content="Amin Madani">
     <link rel="icon" type="image/png" href="./images/logo.png">
-    <link rel="preconnect" href="https://unpkg.com">
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    
+    <!-- Resource Preconnection -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Preload Critical Font Assets -->
+    <link rel="preload" href="webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="webfonts/fa-regular-400.woff2" as="font" type="font/woff2" crossorigin>
+
     <meta name="robots" content="index, follow, max-image-preview:large">
     <link rel="canonical" href="https://bahonarkaraj.ir">
 
-    <!-- Open Graph (Facebook/LinkedIn) -->
+    <!-- Open Graph Metadata for Social Sharing -->
     <meta property="og:site_name" content="<?php echo e($t['seo']['title']); ?>">
     <meta property="og:title" content="<?php echo e($t['seo']['title']); ?>">
     <meta property="og:description" content="<?php echo e($t['seo']['desc']); ?>">
@@ -307,13 +335,7 @@ $t = $i18n[$lang];
     <meta property="og:url" content="https://bahonarkaraj.ir">
     <meta property="og:image" content="https://bahonarkaraj.ir/images/og-cover.jpg">
 
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="<?php echo e($t['seo']['title']); ?>">
-    <meta name="twitter:description" content="<?php echo e($t['seo']['desc']); ?>">
-    <meta name="twitter:image" content="https://bahonarkaraj.ir/images/og-cover.jpg">
-
-    <!-- Schema.org (JSON-LD) for Educational Organization -->
+    <!-- Structured Data (JSON-LD) for Search Engines -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -337,29 +359,22 @@ $t = $i18n[$lang];
       }
     }
     </script>
-    <!-- ========================================== -->
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Vazirmatn:wght@400;500;700;800;900&display=swap"
-        rel="stylesheet">
-
-    <!-- Icons & Plugins CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- External Fonts & Third-Party Library Stylesheets -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Vazirmatn:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
 
-    <!-- Tailwind CSS -->
+    <!-- Tailwind CSS v4 Browser Build -->
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <style type="text/tailwindcss">
         @theme {
-           
             --color-brand-blue: #1e3a8a;      
             --color-brand-blue-light: #2563eb;
-            --color-brand-accent: #f59e0b;    
-            --color-brand-accent-hover: #d97706;/* Amber-600 */
+            --color-brand-accent: #d97706;   
+            --color-brand-accent-hover: #b45309;
             --color-surface-bg: #f8fafc;      
         }
 
@@ -369,7 +384,6 @@ $t = $i18n[$lang];
             overflow-x: hidden;
         }
 
-       
         .card-standard {
             background-color: #ffffff;
             border-radius: 16px;
@@ -398,7 +412,6 @@ $t = $i18n[$lang];
             box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3);
         }
 
-       
         .top-bar { background-color: var(--color-brand-blue); color: #f1f5f9; font-size: 0.875rem; }
         .main-nav {
             background-color: #ffffff;
@@ -407,7 +420,6 @@ $t = $i18n[$lang];
         }
         .main-nav.scrolled { padding-top: 0.5rem; padding-bottom: 0.5rem; }
 
-       
         .mobile-menu-overlay {
             position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 90;
             opacity: 0; visibility: hidden; transition: 0.3s;
@@ -422,7 +434,6 @@ $t = $i18n[$lang];
         .dir-ltr .mobile-menu-content { left: -280px; }
         .dir-ltr .mobile-menu-content.active { left: 0; }
 
-       
         .hero-swiper { width: 100%; height: 80vh; min-height: 500px; max-height: 800px; }
         .hero-slide-bg { position: absolute; inset: 0; z-index: 1; background-color: #0f172a; }
         .hero-slide-bg img { width: 100%; height: 100%; object-fit: cover; opacity: 0.8; }
@@ -440,7 +451,6 @@ $t = $i18n[$lang];
         .swiper-pagination-bullet { background: white !important; opacity: 0.4; width: 12px; height: 4px; border-radius: 2px; transition: 0.3s; }
         .swiper-pagination-bullet-active { opacity: 1 !important; width: 30px; background: var(--color-brand-accent) !important; }
 
-       
         .section-title-wrapper { margin-bottom: 3rem; text-align: center; }
         .section-subtitle { color: var(--color-brand-blue-light); font-weight: 700; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.5rem; }
         .section-title { font-size: 2rem; font-weight: 800; color: #0f172a; }
@@ -451,9 +461,7 @@ $t = $i18n[$lang];
 <body
     class="<?php echo e($t['font']); ?> antialiased selection:bg-blue-600 selection:text-white dir-<?php echo e($dir); ?>">
 
-    <!-- ==============================================================================
-         TOP BAR
-         ============================================================================== -->
+    <!-- Top Bar with Contact Info and Language Switcher -->
     <div class="top-bar hidden md:block py-2">
         <div class="container mx-auto px-4 max-w-7xl flex justify-between items-center">
             <div class="flex items-center gap-6">
@@ -470,6 +478,7 @@ $t = $i18n[$lang];
                 </span>
             </div>
 
+            <!-- Language Switcher Button -->
             <div class="flex items-center gap-3">
                 <a href="?lang=<?php echo $lang === 'fa' ? 'en' : 'fa'; ?>"
                     onclick="sessionStorage.setItem('scroll', window.scrollY);"
@@ -480,14 +489,12 @@ $t = $i18n[$lang];
         </div>
     </div>
 
-    <!-- ==============================================================================
-         MAIN NAVIGATION (Sticky)
-         ============================================================================== -->
+    <!-- Main Navigation Header -->
     <header class="main-nav sticky top-0 z-50 py-4" id="header">
         <div class="container mx-auto px-4 max-w-7xl flex justify-between items-center">
-            <!-- Logo -->
+            <!-- School Brand / Logo -->
             <a href="index.php" class="flex items-center gap-3">
-                <img src="./images/logo.png" alt="Logo" class="h-12 w-auto"
+                <img src="./images/logo.png" alt="Logo" class="h-12 w-auto" width="48" height="48"
                     onerror="this.src='https://placehold.co/100x100/1e3a8a/ffffff?text=B3'">
                 <div class="flex flex-col">
                     <span class="font-bold text-xl text-slate-800 leading-tight">
@@ -499,21 +506,16 @@ $t = $i18n[$lang];
                 </div>
             </a>
 
-            <!-- Desktop Menu -->
+            <!-- Desktop Navigation Links -->
             <nav class="hidden lg:flex items-center gap-8">
-                <a href="index.php"
-                    class="text-slate-600 font-medium hover:text-blue-600 transition-colors"><?php echo e($t['nav']['home']); ?></a>
-                <a href="#about"
-                    class="text-slate-600 font-medium hover:text-blue-600 transition-colors"><?php echo e($t['nav']['about']); ?></a>
-                <a href="#teachers"
-                    class="text-slate-600 font-medium hover:text-blue-600 transition-colors"><?php echo e($t['nav']['teachers']); ?></a>
-                <a href="#blog"
-                    class="text-slate-600 font-medium hover:text-blue-600 transition-colors"><?php echo e($t['nav']['blog']); ?></a>
-                <a href="#contact"
-                    class="text-slate-600 font-medium hover:text-blue-600 transition-colors"><?php echo e($t['nav']['contact']); ?></a>
+                <a href="index.php" class="text-slate-600 font-medium hover:text-blue-600 transition-colors"><?php echo e($t['nav']['home']); ?></a>
+                <a href="#about" class="text-slate-600 font-medium hover:text-blue-600 transition-colors"><?php echo e($t['nav']['about']); ?></a>
+                <a href="#teachers" class="text-slate-600 font-medium hover:text-blue-600 transition-colors"><?php echo e($t['nav']['teachers']); ?></a>
+                <a href="#blog" class="text-slate-600 font-medium hover:text-blue-600 transition-colors"><?php echo e($t['nav']['blog']); ?></a>
+                <a href="#contact" class="text-slate-600 font-medium hover:text-blue-600 transition-colors"><?php echo e($t['nav']['contact']); ?></a>
             </nav>
 
-            <!-- Buttons -->
+            <!-- User Auth Buttons & Mobile Menu Toggle -->
             <div class="flex items-center gap-3">
                 <?php if (isset($_SESSION['user_id'])): ?>
                     <a href="dashboard" class="hidden sm:flex btn-primary">
@@ -525,42 +527,33 @@ $t = $i18n[$lang];
                     </a>
                 <?php endif; ?>
 
-                <!-- Mobile Toggle Button -->
-                <button id="mobileMenuBtn"
-                    class="lg:hidden w-10 h-10 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center text-lg hover:bg-slate-200 transition-colors">
+                <button id="mobileMenuBtn" aria-label="منوی اصلی" class="lg:hidden w-10 h-10 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center text-lg hover:bg-slate-200 transition-colors">
                     <i class="fa-solid fa-bars"></i>
                 </button>
             </div>
         </div>
     </header>
 
-    <!-- Mobile Menu Overlay & Content -->
+    <!-- Mobile Drawer Overlay & Sliding Sidebar -->
     <div class="mobile-menu-overlay" id="mobileOverlay"></div>
     <div class="mobile-menu-content p-6 flex flex-col" id="mobileMenu">
         <div class="flex justify-between items-center border-b border-slate-100 pb-4 mb-6">
             <span class="font-bold text-lg text-slate-800">منوی دسترسی</span>
-            <button id="closeMobileMenu"
-                class="w-8 h-8 rounded bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-red-100 hover:text-red-600 transition-colors">
+            <button id="closeMobileMenu" aria-label="بستن منو" class="w-8 h-8 rounded bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-red-100 hover:text-red-600 transition-colors">
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
         <nav class="flex flex-col gap-4 font-medium text-slate-700">
-            <a href="index.php" class="hover:text-blue-600 transition-colors"><i
-                    class="fa-solid fa-house w-6 text-slate-400"></i> <?php echo e($t['nav']['home']); ?></a>
-            <a href="#about" class="hover:text-blue-600 transition-colors"><i
-                    class="fa-solid fa-circle-info w-6 text-slate-400"></i> <?php echo e($t['nav']['about']); ?></a>
-            <a href="#teachers" class="hover:text-blue-600 transition-colors"><i
-                    class="fa-solid fa-users w-6 text-slate-400"></i> <?php echo e($t['nav']['teachers']); ?></a>
-            <a href="#blog" class="hover:text-blue-600 transition-colors"><i
-                    class="fa-solid fa-newspaper w-6 text-slate-400"></i> <?php echo e($t['nav']['blog']); ?></a>
-            <a href="#contact" class="hover:text-blue-600 transition-colors"><i
-                    class="fa-solid fa-phone w-6 text-slate-400"></i> <?php echo e($t['nav']['contact']); ?></a>
+            <a href="index.php" class="hover:text-blue-600 transition-colors"><i class="fa-solid fa-house w-6 text-slate-400"></i> <?php echo e($t['nav']['home']); ?></a>
+            <a href="#about" class="hover:text-blue-600 transition-colors"><i class="fa-solid fa-circle-info w-6 text-slate-400"></i> <?php echo e($t['nav']['about']); ?></a>
+            <a href="#teachers" class="hover:text-blue-600 transition-colors"><i class="fa-solid fa-users w-6 text-slate-400"></i> <?php echo e($t['nav']['teachers']); ?></a>
+            <a href="#blog" class="hover:text-blue-600 transition-colors"><i class="fa-solid fa-newspaper w-6 text-slate-400"></i> <?php echo e($t['nav']['blog']); ?></a>
+            <a href="#contact" class="hover:text-blue-600 transition-colors"><i class="fa-solid fa-phone w-6 text-slate-400"></i> <?php echo e($t['nav']['contact']); ?></a>
         </nav>
         <div class="mt-auto pt-6 border-t border-slate-100">
             <a href="login" class="flex justify-center btn-primary w-full"><?php echo e($t['nav']['login']); ?></a>
             <div class="flex justify-center mt-4">
-                <a href="?lang=<?php echo $lang === 'fa' ? 'en' : 'fa'; ?>"
-                    class="text-sm font-bold text-slate-500 hover:text-blue-600">
+                <a href="?lang=<?php echo $lang === 'fa' ? 'en' : 'fa'; ?>" class="text-sm font-bold text-slate-500 hover:text-blue-600">
                     <i class="fa-solid fa-globe me-1"></i>
                     <?php echo $lang === 'fa' ? 'Switch to English' : 'تغییر به فارسی'; ?>
                 </a>
@@ -568,380 +561,303 @@ $t = $i18n[$lang];
         </div>
     </div>
 
-    <!-- MAIN CONTENT WRAPPER -->
     <main>
-        <!-- ==============================================================================
-             HERO SLIDER (GIF Optimized)
-             ============================================================================== -->
+        <!-- Hero Section with Fullscreen Image Slider -->
         <section class="relative bg-slate-900 overflow-hidden">
             <div class="swiper hero-swiper">
-<div class="swiper-wrapper">
-    <?php for ($i = 1; $i <= 10; $i++): ?>
-        <div class="swiper-slide">
-            <div class="hero-slide-bg">
-                <!-- استفاده از Lazy Loading بومی مرورگر (سریع‌ترین و بی‌دردسرترین راه) -->
-                <img 
-                    src="./images/<?php echo ($i <= 3) ? 'slide'.$i : 'part'.($i-3); ?>.webp" 
-                    alt="School Section <?php echo $i; ?>"
-                    loading="<?php echo ($i === 1) ? 'eager' : 'lazy'; ?>"
-                    <?php echo ($i === 1) ? 'fetchpriority="high"' : ''; ?>
-                    style="width:100%; height:100%; object-fit:cover;"
-                >
-            </div>
-            <div class="hero-overlay"></div>
-            <div class="container mx-auto px-4 max-w-7xl hero-content">
-                <div class="max-w-2xl text-white" <?php echo ($i === 1) ? 'data-aos="fade-up"' : ''; ?>>
-                    <?php if ($i === 1): ?>
-                        <span class="inline-block py-1 px-3 bg-amber-500 rounded text-xs font-bold uppercase tracking-wider mb-4 text-slate-900">NODET Academy</span>
-                    <?php endif; ?>
-                    
-                    <h2 class="text-4xl md:text-6xl font-black mb-6 leading-tight drop-shadow-lg">
-                        <?php echo e($t['slider']['slide' . $i . '_title']); ?>
-                    </h2>
-                    <p class="text-lg text-slate-200 mb-8 font-light leading-relaxed drop-shadow">
-                        <?php echo e($t['slider']['slide' . $i . '_desc']); ?>
-                    </p>
+                <div class="swiper-wrapper">
+                    <?php for ($i = 1; $i <= 10; $i++): ?>
+                        <div class="swiper-slide">
+                            <div class="hero-slide-bg">
+                                <img 
+                                    src="./images/<?php echo ($i <= 3) ? 'slide'.$i : 'part'.($i-3); ?>.webp" 
+                                    alt="School Section <?php echo $i; ?>"
+                                    width="1200" height="600"
+                                    loading="<?php echo ($i === 1) ? 'eager' : 'lazy'; ?>"
+                                    <?php echo ($i === 1) ? 'fetchpriority="high"' : ''; ?>
+                                    style="width:100%; height:100%; object-fit:cover;"
+                                >
+                            </div>
+                            <div class="hero-overlay"></div>
+                            <div class="container mx-auto px-4 max-w-7xl hero-content">
+                                <div class="max-w-2xl text-white" <?php echo ($i === 1) ? 'data-aos="fade-up"' : ''; ?>>
+                                    <?php if ($i === 1): ?>
+                                        <span class="inline-block py-1 px-3 bg-amber-500 rounded text-xs font-bold uppercase tracking-wider mb-4 text-slate-900">NODET Academy</span>
+                                    <?php endif; ?>
+                                    
+                                    <h2 class="text-4xl md:text-6xl font-black mb-6 leading-tight drop-shadow-lg">
+                                        <?php echo e($t['slider']['slide' . $i . '_title']); ?>
+                                    </h2>
+                                    <p class="text-lg text-slate-200 mb-8 font-light leading-relaxed drop-shadow">
+                                        <?php echo e($t['slider']['slide' . $i . '_desc']); ?>
+                                    </p>
 
-                    <?php if ($i === 1): ?>
-                        <a href="#about" class="btn-primary !bg-amber-500 hover:!bg-amber-600 !text-slate-900 !px-8 !py-4 !text-lg">
-                            <?php echo e($t['slider']['slide1_btn']); ?>
-                        </a>
-                    <?php endif; ?>
+                                    <?php if ($i === 1): ?>
+                                        <a href="#about" class="btn-primary !bg-amber-500 hover:!bg-amber-600 !text-slate-900 !px-8 !py-4 !text-lg">
+                                            <?php echo e($t['slider']['slide1_btn']); ?>
+                                        </a>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endfor; ?>
                 </div>
+                <div class="swiper-button-next" aria-label="اسلاید بعدی"></div>
+                <div class="swiper-button-prev" aria-label="اسلاید قبلی"></div>
+                <div class="swiper-pagination mb-4"></div>
             </div>
-        </div>
-    <?php endfor; ?>
-
-</div>
-                    <!-- Swiper Controls -->
-                    <div class="swiper-button-next"></div>
-                    <div class="swiper-button-prev"></div>
-                    <div class="swiper-pagination mb-4"></div>
-                </div>
         </section>
 
-        <!-- ==============================================================================
-             STATS (Overlapping Hero)
-             ============================================================================== -->
+        <!-- Key Achievements and Statistics Cards -->
         <section class="relative z-10 -mt-16 mb-20 px-4">
             <div class="container mx-auto max-w-7xl">
                 <div class="card-standard p-6 md:p-10 bg-white">
-                    <div
-                        class="grid grid-cols-2 md:grid-cols-4 gap-8 divide-x divide-slate-200 <?php echo $lang === 'fa' ? 'divide-x-reverse' : ''; ?>">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-8 divide-x divide-slate-200 <?php echo $lang === 'fa' ? 'divide-x-reverse' : ''; ?>">
                         <div class="text-center px-4">
-                            <div class="text-3xl md:text-4xl font-black text-blue-600 mb-2">
-                                <?php echo e($t['stats']['s1_num']); ?>
-                            </div>
-                            <div class="text-sm font-medium text-slate-500"><?php echo e($t['stats']['s1_lbl']); ?>
-                            </div>
+                            <div class="text-3xl md:text-4xl font-black text-blue-600 mb-2"><?php echo e($t['stats']['s1_num']); ?></div>
+                            <div class="text-sm font-medium text-slate-600"><?php echo e($t['stats']['s1_lbl']); ?></div>
                         </div>
                         <div class="text-center px-4">
-                            <div class="text-3xl md:text-4xl font-black text-blue-600 mb-2">
-                                <?php echo e($t['stats']['s2_num']); ?>
-                            </div>
-                            <div class="text-sm font-medium text-slate-500"><?php echo e($t['stats']['s2_lbl']); ?>
-                            </div>
+                            <div class="text-3xl md:text-4xl font-black text-blue-600 mb-2"><?php echo e($t['stats']['s2_num']); ?></div>
+                            <div class="text-sm font-medium text-slate-600"><?php echo e($t['stats']['s2_lbl']); ?></div>
                         </div>
                         <div class="text-center px-4">
-                            <div class="text-3xl md:text-4xl font-black text-amber-500 mb-2">
-                                <?php echo e($t['stats']['s3_num']); ?>
-                            </div>
-                            <div class="text-sm font-medium text-slate-500"><?php echo e($t['stats']['s3_lbl']); ?>
-                            </div>
+                            <div class="text-3xl md:text-4xl font-black text-amber-700 mb-2"><?php echo e($t['stats']['s3_num']); ?></div>
+                            <div class="text-sm font-medium text-slate-600"><?php echo e($t['stats']['s3_lbl']); ?></div>
                         </div>
                         <div class="text-center px-4">
-                            <div class="text-3xl md:text-4xl font-black text-blue-600 mb-2">
-                                <?php echo e($t['stats']['s4_num']); ?>
-                            </div>
-                            <div class="text-sm font-medium text-slate-500"><?php echo e($t['stats']['s4_lbl']); ?>
-                            </div>
+                            <div class="text-3xl md:text-4xl font-black text-blue-600 mb-2"><?php echo e($t['stats']['s4_num']); ?></div>
+                            <div class="text-sm font-medium text-slate-600"><?php echo e($t['stats']['s4_lbl']); ?></div>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- ==============================================================================
-             FEATURES / ABOUT US (Modern Grid)
-             ============================================================================== -->
+        <!-- Features / About Us Section -->
         <section id="about" class="py-20">
             <div class="container mx-auto px-4 max-w-7xl">
-
                 <div class="section-title-wrapper" data-aos="fade-up">
                     <span class="section-subtitle"><?php echo e($t['features']['subtitle']); ?></span>
                     <h2 class="section-title"><?php echo e($t['features']['title']); ?></h2>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-
                     <div class="card-standard p-8 text-center" data-aos="fade-up" data-aos-delay="100">
-                        <div
-                            class="w-16 h-16 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-3xl mx-auto mb-6">
+                        <div class="w-16 h-16 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-3xl mx-auto mb-6">
                             <i class="fa-solid fa-chalkboard-user"></i>
                         </div>
-                        <h3 class="text-xl font-bold text-slate-800 mb-3"><?php echo e($t['features']['f1_title']); ?>
-                        </h3>
-                        <p class="text-slate-600 text-sm leading-relaxed"><?php echo e($t['features']['f1_desc']); ?>
-                        </p>
+                        <h3 class="text-xl font-bold text-slate-800 mb-3"><?php echo e($t['features']['f1_title']); ?></h3>
+                        <p class="text-slate-600 text-sm leading-relaxed"><?php echo e($t['features']['f1_desc']); ?></p>
                     </div>
 
                     <div class="card-standard p-8 text-center" data-aos="fade-up" data-aos-delay="200">
-                        <div
-                            class="w-16 h-16 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center text-3xl mx-auto mb-6">
+                        <div class="w-16 h-16 rounded-full bg-amber-50 text-amber-700 flex items-center justify-center text-3xl mx-auto mb-6">
                             <i class="fa-solid fa-flask"></i>
                         </div>
-                        <h3 class="text-xl font-bold text-slate-800 mb-3"><?php echo e($t['features']['f2_title']); ?>
-                        </h3>
-                        <p class="text-slate-600 text-sm leading-relaxed"><?php echo e($t['features']['f2_desc']); ?>
-                        </p>
+                        <h3 class="text-xl font-bold text-slate-800 mb-3"><?php echo e($t['features']['f2_title']); ?></h3>
+                        <p class="text-slate-600 text-sm leading-relaxed"><?php echo e($t['features']['f2_desc']); ?></p>
                     </div>
 
                     <div class="card-standard p-8 text-center" data-aos="fade-up" data-aos-delay="300">
-                        <div
-                            class="w-16 h-16 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-3xl mx-auto mb-6">
+                        <div class="w-16 h-16 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-3xl mx-auto mb-6">
                             <i class="fa-solid fa-microchip"></i>
                         </div>
-                        <h3 class="text-xl font-bold text-slate-800 mb-3"><?php echo e($t['features']['f3_title']); ?>
-                        </h3>
-                        <p class="text-slate-600 text-sm leading-relaxed"><?php echo e($t['features']['f3_desc']); ?>
-                        </p>
+                        <h3 class="text-xl font-bold text-slate-800 mb-3"><?php echo e($t['features']['f3_title']); ?></h3>
+                        <p class="text-slate-600 text-sm leading-relaxed"><?php echo e($t['features']['f3_desc']); ?></p>
                     </div>
 
                     <div class="card-standard p-8 text-center" data-aos="fade-up" data-aos-delay="400">
-                        <div
-                            class="w-16 h-16 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center text-3xl mx-auto mb-6">
+                        <div class="w-16 h-16 rounded-full bg-amber-50 text-amber-700 flex items-center justify-center text-3xl mx-auto mb-6">
                             <i class="fa-solid fa-user-tie"></i>
                         </div>
-                        <h3 class="text-xl font-bold text-slate-800 mb-3"><?php echo e($t['features']['f4_title']); ?>
-                        </h3>
-                        <p class="text-slate-600 text-sm leading-relaxed"><?php echo e($t['features']['f4_desc']); ?>
-                        </p>
+                        <h3 class="text-xl font-bold text-slate-800 mb-3"><?php echo e($t['features']['f4_title']); ?></h3>
+                        <p class="text-slate-600 text-sm leading-relaxed"><?php echo e($t['features']['f4_desc']); ?></p>
                     </div>
-
                 </div>
             </div>
         </section>
 
-        <!-- ==============================================================================
-             TEACHERS (Clean Directory)
-             ============================================================================== -->
-<section id="teachers" class="py-20 bg-slate-100 border-y border-slate-200 overflow-hidden">
-    <div class="container mx-auto px-4 max-w-7xl relative">
-        
-        <div class="section-title-wrapper" data-aos="fade-up">
-            <span class="section-subtitle"><?php echo e($t['faculty']['subtitle']); ?></span>
-            <h2 class="section-title"><?php echo e($t['faculty']['title']); ?></h2>
-        </div>
-
-        <!-- Slider Container -->
-        <div class="swiper teachers-swiper px-4 py-8">
-            <div class="swiper-wrapper">
-                <?php if (!empty($teachers)): ?>
-                <?php foreach ($teachers as $index => $teacher): ?>
-                        <?php 
-                            // سیستم تشخیص زبان برای نام و تخصص
-                            $t_name = ($lang === 'en' && !empty($teacher['name_en'])) ? $teacher['name_en'] : $teacher['name'];
-                            $t_spec = ($lang === 'en' && !empty($teacher['specialty_en'])) ? $teacher['specialty_en'] : ($teacher['specialty'] ?? 'تخصص تعریف نشده');
-                        ?>
-                        <div class="swiper-slide h-auto">
-                            <a href="teachers/profile.php?id=<?php echo $teacher['id']; ?>" class="block h-full">
-                                <div class="card-standard p-6 text-center h-full flex flex-col items-center">
-                                    <div class="w-32 h-32 mx-auto rounded-full overflow-hidden border-4 border-white shadow-md mb-4 bg-slate-200">
-                                        <?php
-                                        $img = !empty($teacher['profile_image']) ? $teacher['profile_image'] : '';
-                                        // نام داخل fallback را هم بر اساس زبان گذاشتم تا آواتار درست ساخته شود
-                                        $fallback = "https://ui-avatars.com/api/?name=" . urlencode($t_name) . "&background=1e3a8a&color=ffffff&size=256";
-                                        ?>
-                                        <img src="<?php echo e($img ? $img : $fallback); ?>" alt="<?php echo e($t_name); ?>" class="w-full h-full object-cover" onerror="this.src='<?php echo $fallback; ?>'">
-                                    </div>
-                                    <h3 class="text-lg font-bold text-slate-800 mb-1"><?php echo e($t_name); ?></h3>
-                                    <span class="inline-block px-3 py-1 bg-blue-50 text-blue-600 text-xs font-bold rounded-full">
-                                        <?php echo e($t_spec); ?>
-                                    </span>
-                                </div>
-                            </a>
-                        </div>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <div class="col-span-full text-center py-10">
-                        <p class="text-slate-500 font-medium"><?php echo e($t['faculty']['empty']); ?></p>
-                    </div>
-                <?php endif; ?>
-            </div>
-
-            <!-- دکمه‌های کنترل -->
-            <div class="swiper-button-next !text-blue-600 !w-10 !h-10 after:!text-lg bg-white shadow-lg rounded-full border border-slate-200"></div>
-            <div class="swiper-button-prev !text-blue-600 !w-10 !h-10 after:!text-lg bg-white shadow-lg rounded-full border border-slate-200"></div>
-        </div>
-
-        <!-- دکمه نمایش همه -->
-        <div class="text-center mt-12">
-            <a href="teachers/index.php" class="btn-primary">
-                <?php echo e($t['faculty']['view_all']); ?>
-                <i class="fa-solid fa-arrow-<?php echo $lang === 'fa' ? 'left' : 'right'; ?> ms-2"></i>
-            </a>
-        </div>
-    </div>
-</section>
-
-        <!-- ==============================================================================
-             NEWS & BLOG (Standard Cards)
-             ============================================================================== -->
-<!-- ==============================================================================
-     NEWS & BLOG (Standard Cards)
-     ============================================================================== -->
-<section id="blog" class="py-20">
-    <div class="container mx-auto px-4 max-w-7xl">
-
-        <div class="section-title-wrapper" data-aos="fade-up">
-            <span class="section-subtitle"><?php echo e($t['blog']['subtitle']); ?></span>
-            <h2 class="section-title"><?php echo e($t['blog']['title']); ?></h2>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <?php if (!empty($posts)): ?>
-                <?php foreach ($posts as $index => $post): ?>
-                    <article class="card-standard flex flex-col overflow-hidden" data-aos="fade-up"
-                        data-aos-delay="<?php echo $index * 100; ?>">
-                        <a href="blog/post/index.php?id=<?php echo (int) $post['id']; ?>"
-                            class="block w-full aspect-video bg-slate-200 relative overflow-hidden group">
-                            <?php
-                            
-                            $img = !empty($post['image_path']) ? "./" . $post['image_path'] : "https://placehold.co/800x450/1e3a8a/ffffff?text=Bahonar+3";
-                            ?>
-                            <img src="<?php echo e($img); ?>" alt="<?php echo e($post['title']); ?>"
-                                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                onerror="this.src='https://placehold.co/800x450/1e3a8a/ffffff?text=Bahonar+3'">
-                            <!-- Date Badge -->
-                            <time datetime="<?php echo e($post['created_at']); ?>"
-                                class="absolute top-4 <?php echo $lang === 'fa' ? 'right-4' : 'left-4'; ?> bg-white px-3 py-1 rounded shadow-sm text-xs font-bold text-blue-600">
-                                <i class="fa-regular fa-calendar me-1"></i>
-                                <?php echo $lang === 'fa' ? toJalali($post['created_at']) : date('M d, Y', strtotime($post['created_at'])); ?>
-                            </time>
-                        </a>
-                        <div class="p-6 flex flex-col flex-grow">
-                            <div class="text-xs text-slate-500 mb-3 flex items-center gap-2">
-                                <i class="fa-solid fa-user-pen"></i> <?php echo e($post['author_name']); ?>
-                            </div>
-                            <h3 class="text-xl font-bold text-slate-800 mb-4 line-clamp-2 hover:text-blue-600 transition-colors">
-                                <a href="blog/post/index.php?id=<?php echo (int) $post['id']; ?>"><?php echo e($post['title']); ?></a>
-                            </h3>
-                            <div class="mt-auto">
-                                <a href="blog/post/index.php?id=<?php echo (int) $post['id']; ?>"
-                                    class="text-blue-600 font-bold text-sm inline-flex items-center gap-2 hover:text-blue-800 transition-colors group">
-                                    <?php echo e($t['blog']['read']); ?>
-                                    <i class="fa-solid fa-arrow-<?php echo $lang === 'fa' ? 'left' : 'right'; ?> group-hover:translate-x-<?php echo $lang === 'fa' ? '-4px' : '4px'; ?> transition-transform"></i>
-                                </a>
-                            </div>
-                        </div>
-                    </article>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <div class="col-span-full text-center py-10">
-                    <p class="text-slate-500 font-medium"><?php echo e($t['blog']['empty']); ?></p>
+        <!-- Teaching Staff Carousel Section -->
+        <section id="teachers" class="py-20 bg-slate-100 border-y border-slate-200 overflow-hidden">
+            <div class="container mx-auto px-4 max-w-7xl relative">
+                <div class="section-title-wrapper" data-aos="fade-up">
+                    <span class="section-subtitle"><?php echo e($t['faculty']['subtitle']); ?></span>
+                    <h2 class="section-title"><?php echo e($t['faculty']['title']); ?></h2>
                 </div>
-            <?php endif; ?>
-        </div>
 
-        <!-- دکمه نمایش همه اخبار -->
-        <div class="text-center mt-12" data-aos="fade-up">
-            <a href="blog/index.php" class="btn-primary">
-                <?php echo $lang === 'fa' ? 'نمایش همه اخبار' : 'View All News'; ?>
-                <i class="fa-solid fa-arrow-<?php echo $lang === 'fa' ? 'left' : 'right'; ?> ms-2"></i>
-            </a>
-        </div>
+                <div class="swiper teachers-swiper px-4 py-8">
+                    <div class="swiper-wrapper">
+                        <?php if (!empty($teachers)): ?>
+                            <?php foreach ($teachers as $index => $teacher): ?>
+                                <?php 
+                                    $t_name = ($lang === 'en' && !empty($teacher['name_en'])) ? $teacher['name_en'] : $teacher['name'];
+                                    $t_spec = ($lang === 'en' && !empty($teacher['specialty_en'])) ? $teacher['specialty_en'] : ($teacher['specialty'] ?? 'تخصص تعریف نشده');
+                                ?>
+                                <div class="swiper-slide h-auto">
+                                    <a href="teachers/profile.php?id=<?php echo $teacher['id']; ?>" class="block h-full">
+                                        <div class="card-standard p-6 text-center h-full flex flex-col items-center">
+                                            <div class="w-32 h-32 mx-auto rounded-full overflow-hidden border-4 border-white shadow-md mb-4 bg-slate-200">
+                                                <?php
+                                                $raw_img = !empty($teacher['profile_image']) ? $teacher['profile_image'] : '';
+                                                $img = $raw_img;
+                                                if ($raw_img) {
+                                                    $webp_version = preg_replace('/\.(png|jpg|jpeg)$/i', '.webp', $raw_img);
+                                                    if ($webp_version !== $raw_img && file_exists(__DIR__ . '/' . $webp_version)) {
+                                                        $img = $webp_version;
+                                                    }
+                                                }
+                                                $fallback = "https://ui-avatars.com/api/?name=" . urlencode($t_name) . "&background=1e3a8a&color=ffffff&size=256";
+                                                ?>
+                                                <img src="<?php echo e($img ? $img : $fallback); ?>" alt="<?php echo e($t_name); ?>" width="128" height="128" loading="lazy" class="w-full h-full object-cover" onerror="this.src='<?php echo $fallback; ?>'">
+                                            </div>
+                                            <h3 class="text-lg font-bold text-slate-800 mb-1"><?php echo e($t_name); ?></h3>
+                                            <span class="inline-block px-3 py-1 bg-blue-50 text-blue-600 text-xs font-bold rounded-full">
+                                                <?php echo e($t_spec); ?>
+                                            </span>
+                                        </div>
+                                    </a>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="col-span-full text-center py-10">
+                                <p class="text-slate-500 font-medium"><?php echo e($t['faculty']['empty']); ?></p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
 
-    </div>
-</section>
+                    <div class="swiper-button-next !text-blue-600 !w-10 !h-10 after:!text-lg bg-white shadow-lg rounded-full border border-slate-200" aria-label="استاد بعدی"></div>
+                    <div class="swiper-button-prev !text-blue-600 !w-10 !h-10 after:!text-lg bg-white shadow-lg rounded-full border border-slate-200" aria-label="استاد قبلی"></div>
+                </div>
 
-        <!-- ==============================================================================
-             CONTACT & MAP (Functional & Informative)
-             ============================================================================== -->
+                <div class="text-center mt-12">
+                    <a href="teachers/index.php" class="btn-primary">
+                        <?php echo e($t['faculty']['view_all']); ?>
+                        <i class="fa-solid fa-arrow-<?php echo $lang === 'fa' ? 'left' : 'right'; ?> ms-2"></i>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- News & Blog Highlights Section -->
+        <section id="blog" class="py-20">
+            <div class="container mx-auto px-4 max-w-7xl">
+                <div class="section-title-wrapper" data-aos="fade-up">
+                    <span class="section-subtitle"><?php echo e($t['blog']['subtitle']); ?></span>
+                    <h2 class="section-title"><?php echo e($t['blog']['title']); ?></h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <?php if (!empty($posts)): ?>
+                        <?php foreach ($posts as $index => $post): ?>
+                            <article class="card-standard flex flex-col overflow-hidden" data-aos="fade-up" data-aos-delay="<?php echo $index * 100; ?>">
+                                <a href="blog/post/index.php?id=<?php echo (int) $post['id']; ?>" aria-label="<?php echo e($post['title']); ?>" class="block w-full aspect-video bg-slate-200 relative overflow-hidden group">
+                                    <?php
+                                    $img = !empty($post['image_path']) ? "./" . $post['image_path'] : "https://placehold.co/800x450/1e3a8a/ffffff?text=Bahonar+3";
+                                    ?>
+                                    <img src="<?php echo e($img); ?>" alt="<?php echo e($post['title']); ?>" width="400" height="225" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://placehold.co/800x450/1e3a8a/ffffff?text=Bahonar+3'">
+                                    
+                                    <time datetime="<?php echo e($post['created_at']); ?>" class="absolute top-4 <?php echo $lang === 'fa' ? 'right-4' : 'left-4'; ?> bg-white px-3 py-1 rounded shadow-sm text-xs font-bold text-blue-600">
+                                        <i class="fa-regular fa-calendar me-1"></i>
+                                        <?php echo $lang === 'fa' ? toJalali($post['created_at']) : date('M d, Y', strtotime($post['created_at'])); ?>
+                                    </time>
+                                </a>
+                                <div class="p-6 flex flex-col flex-grow">
+                                    <div class="text-xs text-slate-500 mb-3 flex items-center gap-2">
+                                        <i class="fa-solid fa-user-pen"></i> <?php echo e($post['author_name']); ?>
+                                    </div>
+                                    <h3 class="text-xl font-bold text-slate-800 mb-4 line-clamp-2 hover:text-blue-600 transition-colors">
+                                        <a href="blog/post/index.php?id=<?php echo (int) $post['id']; ?>"><?php echo e($post['title']); ?></a>
+                                    </h3>
+                                    <div class="mt-auto">
+                                        <a href="blog/post/index.php?id=<?php echo (int) $post['id']; ?>" aria-label="ادامه مطلب خبر <?php echo e($post['title']); ?>" class="text-blue-600 font-bold text-sm inline-flex items-center gap-2 hover:text-blue-800 transition-colors group">
+                                            <?php echo e($t['blog']['read']); ?>
+                                            <i class="fa-solid fa-arrow-<?php echo $lang === 'fa' ? 'left' : 'right'; ?> group-hover:translate-x-<?php echo $lang === 'fa' ? '-4px' : '4px'; ?> transition-transform"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </article>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="col-span-full text-center py-10">
+                            <p class="text-slate-500 font-medium"><?php echo e($t['blog']['empty']); ?></p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <div class="text-center mt-12" data-aos="fade-up">
+                    <a href="blog/index.php" class="btn-primary">
+                        <?php echo $lang === 'fa' ? 'نمایش همه اخبار' : 'View All News'; ?>
+                        <i class="fa-solid fa-arrow-<?php echo $lang === 'fa' ? 'left' : 'right'; ?> ms-2"></i>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact Information and Google Maps Section -->
         <section id="contact" class="py-20 bg-slate-100 border-t border-slate-200">
             <div class="container mx-auto px-4 max-w-7xl">
                 <div class="grid lg:grid-cols-2 gap-12 items-center">
-
-                    <!-- Contact Details -->
                     <div data-aos="fade-up">
                         <span class="section-subtitle text-start"><?php echo e($t['nav']['contact']); ?></span>
                         <h2 class="text-3xl md:text-4xl font-black text-slate-800 mb-6">
                             <?php echo e($t['contact']['title']); ?>
                         </h2>
-                        <p class="text-slate-600 mb-10 leading-relaxed text-lg"><?php echo e($t['contact']['desc']); ?>
-                        </p>
+                        <p class="text-slate-600 mb-10 leading-relaxed text-lg"><?php echo e($t['contact']['desc']); ?></p>
 
                         <div class="space-y-6">
-                            <!-- Address -->
                             <div class="flex items-start gap-4">
-                                <div
-                                    class="w-12 h-12 rounded-lg bg-white shadow-sm flex items-center justify-center text-blue-600 text-xl shrink-0">
+                                <div class="w-12 h-12 rounded-lg bg-white shadow-sm flex items-center justify-center text-blue-600 text-xl shrink-0">
                                     <i class="fa-solid fa-location-dot"></i>
                                 </div>
                                 <div>
-                                    <h4 class="font-bold text-slate-800 text-sm mb-1">
-                                        <?php echo e($t['contact']['address_lbl']); ?>
-                                    </h4>
+                                    <h3 class="font-bold text-slate-800 text-sm mb-1"><?php echo e($t['contact']['address_lbl']); ?></h3>
                                     <p class="text-slate-600"><?php echo e($t['contact']['address']); ?></p>
                                 </div>
                             </div>
 
-                            <!-- Phone -->
                             <div class="flex items-start gap-4">
-                                <div
-                                    class="w-12 h-12 rounded-lg bg-white shadow-sm flex items-center justify-center text-blue-600 text-xl shrink-0">
+                                <div class="w-12 h-12 rounded-lg bg-white shadow-sm flex items-center justify-center text-blue-600 text-xl shrink-0">
                                     <i class="fa-solid fa-phone"></i>
                                 </div>
                                 <div>
-                                    <h4 class="font-bold text-slate-800 text-sm mb-1">
-                                        <?php echo e($t['contact']['phone_lbl']); ?>
-                                    </h4>
+                                    <h3 class="font-bold text-slate-800 text-sm mb-1"><?php echo e($t['contact']['phone_lbl']); ?></h3>
                                     <p class="text-slate-600" dir="ltr"><?php echo e($t['topbar']['phone']); ?></p>
                                 </div>
                             </div>
 
-                            <!-- Email -->
                             <div class="flex items-start gap-4">
-                                <div
-                                    class="w-12 h-12 rounded-lg bg-white shadow-sm flex items-center justify-center text-blue-600 text-xl shrink-0">
+                                <div class="w-12 h-12 rounded-lg bg-white shadow-sm flex items-center justify-center text-blue-600 text-xl shrink-0">
                                     <i class="fa-solid fa-envelope"></i>
                                 </div>
                                 <div>
-                                    <h4 class="font-bold text-slate-800 text-sm mb-1">
-                                        <?php echo e($t['contact']['email_lbl']); ?>
-                                    </h4>
-                                    <a href="mailto:<?php echo e($t['topbar']['email']); ?>"
-                                        class="text-blue-600 hover:underline"
-                                        dir="ltr"><?php echo e($t['topbar']['email']); ?></a>
+                                    <h3 class="font-bold text-slate-800 text-sm mb-1"><?php echo e($t['contact']['email_lbl']); ?></h3>
+                                    <a href="mailto:<?php echo e($t['topbar']['email']); ?>" class="text-blue-600 hover:underline" dir="ltr"><?php echo e($t['topbar']['email']); ?></a>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Google Map Container -->
-                    <div class="card-standard p-2 h-[450px]" data-aos="zoom-in">
+                    <!-- Smart Lazy Map Container -->
+                    <div class="card-standard p-2 h-[450px]" data-aos="zoom-in" id="mapWrapper">
                         <iframe
-                            src="https://maps.google.com/maps?q=%D8%A8%D8%A7%D9%87%D9%86%D8%B1%203&amp;t=&amp;z=14&amp;ie=UTF8&amp;iwloc=&amp;output=embed"
-                            title="School Map" class="w-full h-full rounded-xl border-0" allowfullscreen=""
+                            data-src="https://maps.google.com/maps?q=%D8%A8%D8%A7%D9%87%D9%86%D8%B1%203&amp;t=&amp;z=14&amp;ie=UTF8&amp;iwloc=&amp;output=embed"
+                            id="mapIframe" title="School Map Location" class="w-full h-full rounded-xl border-0" allowfullscreen=""
                             loading="lazy" referrerpolicy="no-referrer-when-downgrade">
                         </iframe>
                     </div>
-
                 </div>
             </div>
         </section>
     </main>
 
-    <!-- ==============================================================================
-         FOOTER
-         ============================================================================== -->
+    <!-- Page Footer -->
     <footer class="bg-slate-900 text-slate-300 pt-16 pb-8">
         <div class="container mx-auto px-4 max-w-7xl">
             <div class="grid grid-cols-1 md:grid-cols-12 gap-12 mb-12">
-
-                <!-- Brand Info -->
                 <div class="md:col-span-5">
                     <div class="flex items-center gap-3 mb-6">
-                        <img src="./images/logo.png" alt="Logo" class="h-10 w-auto">
+                        <img src="./images/logo.png" alt="Logo" class="h-10 w-auto" width="40" height="40">
                         <span class="font-bold text-xl text-white">
                             <?php echo $lang === 'fa' ? 'باهنر ۳' : 'BAHONAR 3'; ?>
                         </span>
@@ -951,28 +867,18 @@ $t = $i18n[$lang];
                     </p>
                 </div>
 
-                <!-- Quick Links -->
                 <div class="md:col-span-3">
-                    <h4 class="text-white font-bold mb-6"><?php echo e($t['footer']['links']); ?></h4>
+                    <h3 class="text-white font-bold mb-6 text-base"><?php echo e($t['footer']['links']); ?></h3>
                     <ul class="space-y-3">
-                        <li><a href="#about"
-                                class="text-sm text-slate-400 hover:text-white transition-colors"><?php echo e($t['nav']['about']); ?></a>
-                        </li>
-                        <li><a href="#teachers"
-                                class="text-sm text-slate-400 hover:text-white transition-colors"><?php echo e($t['nav']['teachers']); ?></a>
-                        </li>
-                        <li><a href="#blog"
-                                class="text-sm text-slate-400 hover:text-white transition-colors"><?php echo e($t['nav']['blog']); ?></a>
-                        </li>
-                        <li><a href="#contact"
-                                class="text-sm text-slate-400 hover:text-white transition-colors"><?php echo e($t['nav']['contact']); ?></a>
-                        </li>
+                        <li><a href="#about" class="text-sm text-slate-400 hover:text-white transition-colors"><?php echo e($t['nav']['about']); ?></a></li>
+                        <li><a href="#teachers" class="text-sm text-slate-400 hover:text-white transition-colors"><?php echo e($t['nav']['teachers']); ?></a></li>
+                        <li><a href="#blog" class="text-sm text-slate-400 hover:text-white transition-colors"><?php echo e($t['nav']['blog']); ?></a></li>
+                        <li><a href="#contact" class="text-sm text-slate-400 hover:text-white transition-colors"><?php echo e($t['nav']['contact']); ?></a></li>
                     </ul>
                 </div>
 
-                <!-- Contact Short -->
                 <div class="md:col-span-4">
-                    <h4 class="text-white font-bold mb-6"><?php echo e($t['nav']['contact']); ?></h4>
+                    <h3 class="text-white font-bold mb-6 text-base"><?php echo e($t['nav']['contact']); ?></h3>
                     <ul class="space-y-4">
                         <li class="flex items-center gap-3 text-sm">
                             <i class="fa-solid fa-phone text-blue-500"></i>
@@ -984,30 +890,24 @@ $t = $i18n[$lang];
                         </li>
                     </ul>
                 </div>
-
             </div>
 
-            <!-- Copyright Line -->
-            <div
-                class="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs">
+            <div class="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs">
                 <p>&copy; <?php echo date('Y'); ?>. <?php echo e($t['footer']['copyright']); ?></p>
-                <a href="https://aminmadani.ir" target="_blank" class="hover:text-white transition-colors">
+                <a href="https://aminmadani.ir" target="_blank" rel="noopener" class="hover:text-white transition-colors">
                     <?php echo e($t['footer']['dev']); ?>
                 </a>
             </div>
         </div>
     </footer>
 
-    <!-- ==============================================================================
-         SCRIPTS
-         ============================================================================== -->
-    <!-- AOS Animations -->
+    <!-- JavaScript Libraries -->
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <!-- Swiper Slider -->
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 
+    <!-- Client-side Logic Script -->
     <script>
-        
+        // Restore scroll position after dynamic language switch reloading
         window.addEventListener('load', function () {
             if (sessionStorage.getItem('scroll') !== null) {
                 window.scrollTo(0, parseInt(sessionStorage.getItem('scroll')));
@@ -1015,32 +915,28 @@ $t = $i18n[$lang];
             }
         });
 
-        
-setTimeout(() => {
-    AOS.init({
-        once: true,
-        offset: 50,
-        duration: 600,
-        easing: 'ease-out-cubic',
-    });
-}, 500);
+        // Initialize Animate On Scroll (AOS) plugin with slight delay
+        setTimeout(() => {
+            AOS.init({
+                once: true,
+                offset: 50,
+                duration: 600,
+                easing: 'ease-out-cubic',
+            });
+        }, 300);
 
-        
-        
+        // Configure full-screen Hero Swiper slider instance
         var heroSwiper = new Swiper(".hero-swiper", {
-    loop: true,
-    speed: 1000,
-    autoplay: {
-        delay: 5000,
-        disableOnInteraction: false,
-    },
-    effect: 'fade',
-    fadeEffect: { crossFade: true },
-    pagination: { el: ".swiper-pagination", clickable: true },
-    navigation: { nextEl: ".swiper-button-next", prevEl: ".swiper-button-prev" }
-});
+            loop: true,
+            speed: 1000,
+            autoplay: { delay: 5000, disableOnInteraction: false },
+            effect: 'fade',
+            fadeEffect: { crossFade: true },
+            pagination: { el: ".swiper-pagination", clickable: true },
+            navigation: { nextEl: ".swiper-button-next", prevEl: ".swiper-button-prev" }
+        });
 
-        
+        // Dynamic header styling adaptation on user scroll
         const header = document.getElementById('header');
         window.addEventListener('scroll', () => {
             if (window.scrollY > 40) {
@@ -1050,7 +946,7 @@ setTimeout(() => {
             }
         });
 
-        
+        // Toggle mobile navigation drawer overlay
         const mobileBtn = document.getElementById('mobileMenuBtn');
         const closeBtn = document.getElementById('closeMobileMenu');
         const mobileMenu = document.getElementById('mobileMenu');
@@ -1066,32 +962,39 @@ setTimeout(() => {
         closeBtn.addEventListener('click', toggleMenu);
         mobileOverlay.addEventListener('click', toggleMenu);
 
-        
+        // Auto-close mobile drawer when any link is clicked
         document.querySelectorAll('.mobile-menu-content nav a').forEach(link => {
             link.addEventListener('click', toggleMenu);
         });
-        
-var teachersSwiper = new Swiper(".teachers-swiper", {
-    slidesPerView: 1, 
-    spaceBetween: 20,
-    loop: true,
-    autoplay: {
-        delay: 3000,
-        disableOnInteraction: false,
-    },
-    navigation: {
-        nextEl: ".swiper-button-next",
-        prevEl: ".swiper-button-prev",
-    },
-    breakpoints: {
-        640: {
-            slidesPerView: 2, 
-        },
-        1024: {
-            slidesPerView: 4, 
-        },
-    },
-});
+
+        // Configure responsive Teachers Swiper carousel
+        var teachersSwiper = new Swiper(".teachers-swiper", {
+            slidesPerView: 1, 
+            spaceBetween: 20,
+            loop: true,
+            autoplay: { delay: 3000, disableOnInteraction: false },
+            navigation: { nextEl: ".swiper-button-next", prevEl: ".swiper-button-prev" },
+            breakpoints: {
+                640: { slidesPerView: 2 },
+                1024: { slidesPerView: 4 },
+            },
+        });
+
+        // Smart Intersection Observer for delayed Google Maps iframe loading
+        const mapObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const iframe = document.getElementById('mapIframe');
+                    if (iframe && !iframe.src && iframe.dataset.src) {
+                        iframe.src = iframe.dataset.src;
+                    }
+                    mapObserver.unobserve(entry.target);
+                }
+            });
+        }, { rootMargin: '100px' });
+
+        const mapWrapper = document.getElementById('mapWrapper');
+        if (mapWrapper) mapObserver.observe(mapWrapper);
     </script>
 </body>
 

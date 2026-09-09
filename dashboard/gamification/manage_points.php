@@ -1,4 +1,20 @@
 <?php
+/**
+ *     _____                    __   __  ___ _____
+ *    /__  /  ___  _________   / /  /  |/  // ___/
+ *      / /  / _ \/ ___/ __ \ / /  / /|_/ / \__ \ 
+ *     / /__/  __/ /  / /_/ // /__/ /  / / ___/ / 
+ *    /____/\___/_/   \____//____/_/  /_/ /____/  
+ * 
+ * ------------------------------------------------------------
+ *  System      : Zero LMS Core Engine
+ *  Author      : Amin Madani
+ *  Created     : 2026
+ *  Notice      : Unauthorized copying or modification of this file,
+ *                via any medium is strictly prohibited.
+ * ------------------------------------------------------------
+ */
+
 session_start();
 require_once '../../db.php';
 
@@ -12,6 +28,7 @@ $action = $input['action'] ?? '';
 $user_id = $input['user_id'] ?? 0;
 $points = $input['points'] ?? 0;
 
+// Add or deduct user gamification points
 if ($action === 'add') {
     $stmt = $pdo->prepare("INSERT INTO user_points (user_id, points, created_at) VALUES (?, ?, NOW()) ON DUPLICATE KEY UPDATE points = points + ?");
     $success = $stmt->execute([$user_id, $points, $points]);

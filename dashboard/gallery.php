@@ -1,4 +1,20 @@
 <?php
+/**
+ *     _____                    __   __  ___ _____
+ *    /__  /  ___  _________   / /  /  |/  // ___/
+ *      / /  / _ \/ ___/ __ \ / /  / /|_/ / \__ \ 
+ *     / /__/  __/ /  / /_/ // /__/ /  / / ___/ / 
+ *    /____/\___/_/   \____//____/_/  /_/ /____/  
+ * 
+ * ------------------------------------------------------------
+ *  System      : Zero LMS Core Engine
+ *  Author      : Amin Madani
+ *  Created     : 2026
+ *  Notice      : Unauthorized copying or modification of this file,
+ *                via any medium is strictly prohibited.
+ * ------------------------------------------------------------
+ */
+
 session_start();
 require_once '../db.php';
 require_once '../log.php';
@@ -6,7 +22,7 @@ require_once '../log.php';
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache');
 
-
+// Verify session permissions for gallery operations
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'teacher'])) {
     http_response_code(403);
     echo json_encode(['success' => false, 'error' => 'دسترسی غیرمجاز']);
@@ -14,14 +30,14 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'teac
     exit;
 }
 
-
+// Validate HTTP POST method and action parameter
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['action'])) {
     echo json_encode(['success' => false, 'error' => 'درخواست نامعتبر']);
     addLog($pdo, $_SESSION['user_id'], 'خطای درخواست نامعتبر', 'گالری');
     exit;
 }
 
-
+// Check CSRF token integrity
 if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
     echo json_encode(['success' => false, 'error' => 'توکن امنیتی نامعتبر']);
     addLog($pdo, $_SESSION['user_id'], 'خطای توکن امنیتی', 'گالری');
@@ -41,44 +57,27 @@ try {
         }
 
         $title = trim($_POST['title'] ?? '') ?: null;
-        $image = $_FILES['image'];
-        $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
-        $max_size = 5 * 1024 * 1024;
-
-        if (!in_array($image['type'], $allowed_types)) {
-            echo json_encode(['success' => false, 'error' => 'فرمت فایل مجاز نیست (فقط JPEG، PNG، GIF)']);
-            addLog($pdo, $_SESSION['user_id'], 'خطای فرمت فایل', 'گالری');
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-            exit;
-        }
-
-        if ($image['size'] > $max_size) {
-            echo json_encode(['success' => false, 'error' => 'حجم فایل بیش از 5 مگابایت است']);
-            addLog($pdo, $_SESSION['user_id'], 'خطای حجم فایل', 'گالری');
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-            exit;
-        }
-
+        require_once '../upload_security.php';
         $upload_dir = '../uploads/gallery/';
-        if (!is_dir($upload_dir)) {
-            mkdir($upload_dir, 0755, true);
-        }
+        list($success, $filename_or_err, $dest) = store_safe_upload(
+            $image,
+            $upload_dir,
+            ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+            ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+            'img_',
+            5 * 1024 * 1024
+        );
 
-        $file_name = uniqid('img_') . '.' . pathinfo($image['name'], PATHINFO_EXTENSION);
-        $destination = $upload_dir . $file_name;
-
-        if (!move_uploaded_file($image['tmp_name'], $destination)) {
-            echo json_encode(['success' => false, 'error' => 'خطا در آپلود فایل']);
-            addLog($pdo, $_SESSION['user_id'], 'خطای آپلود فایل', 'گالری');
+        if (!$success) {
+            echo json_encode(['success' => false, 'error' => $filename_or_err]);
+            addLog($pdo, $_SESSION['user_id'], 'خطای آپلود فایل: ' . $filename_or_err, 'گالری');
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
             exit;
         }
+
+        $file_name = $filename_or_err;
 
         $stmt = $pdo->prepare("INSERT INTO gallery (image_path, title, uploaded_by, created_at) VALUES (:image_path, :title, :uploaded_by, NOW())");
         $stmt->execute([
@@ -119,39 +118,27 @@ try {
         $new_image_path = $image['image_path'];
         if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
             $image_file = $_FILES['image'];
-            $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
-            $max_size = 5 * 1024 * 1024;
-
-            if (!in_array($image_file['type'], $allowed_types)) {
-                echo json_encode(['success' => false, 'error' => 'فرمت فایل مجاز نیست']);
-                addLog($pdo, $_SESSION['user_id'], 'خطای فرمت فایل در ویرایش', 'گالری');
-                if ($pdo->inTransaction()) {
-                    $pdo->rollBack();
-                }
-                exit;
-            }
-
-            if ($image_file['size'] > $max_size) {
-                echo json_encode(['success' => false, 'error' => 'حجم فایل بیش از 5 مگابایت است']);
-                addLog($pdo, $_SESSION['user_id'], 'خطای حجم فایل در ویرایش', 'گالری');
-                if ($pdo->inTransaction()) {
-                    $pdo->rollBack();
-                }
-                exit;
-            }
-
+            require_once '../upload_security.php';
             $upload_dir = '../uploads/gallery/';
-            $file_name = uniqid('img_') . '.' . pathinfo($image_file['name'], PATHINFO_EXTENSION);
-            $destination = $upload_dir . $file_name;
+            list($success, $filename_or_err, $dest) = store_safe_upload(
+                $image_file,
+                $upload_dir,
+                ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+                ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+                'img_',
+                5 * 1024 * 1024
+            );
 
-            if (!move_uploaded_file($image_file['tmp_name'], $destination)) {
-                echo json_encode(['success' => false, 'error' => 'خطا در آپلود فایل جدید']);
-                addLog($pdo, $_SESSION['user_id'], 'خطای آپلود فایل در ویرایش', 'گالری');
+            if (!$success) {
+                echo json_encode(['success' => false, 'error' => $filename_or_err]);
+                addLog($pdo, $_SESSION['user_id'], 'خطای آپلود فایل در ویرایش: ' . $filename_or_err, 'گالری');
                 if ($pdo->inTransaction()) {
                     $pdo->rollBack();
                 }
                 exit;
             }
+
+            $file_name = $filename_or_err;
 
             if (file_exists('../' . $image['image_path'])) {
                 unlink('../' . $image['image_path']);

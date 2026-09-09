@@ -26,6 +26,8 @@ try {
     $stmt->execute([$course_id]);
     $stmt = $pdo->prepare("DELETE FROM Messages WHERE class_course_id = ?");
     $stmt->execute([$course_id]);
+    $stmt = $pdo->prepare("DELETE FROM report_cards WHERE class_course_id = ?");
+    $stmt->execute([$course_id]);
     
     $stmt = $pdo->prepare("DELETE FROM ClassCourses WHERE id = ?");
     $stmt->execute([$course_id]);

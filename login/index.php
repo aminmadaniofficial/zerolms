@@ -1,266 +1,324 @@
 <?php
+/**
+ *     _____                    __   __  ___ _____
+ *    /__  /  ___  _________   / /  /  |/  // ___/
+ *      / /  / _ \/ ___/ __ \ / /  / /|_/ / \__ \ 
+ *     / /__/  __/ /  / /_/ // /__/ /  / / ___/ / 
+ *    /____/\___/_/   \____//____/_/  /_/ /____/  
+ * 
+ * ------------------------------------------------------------
+ *  System      : Zero LMS Core Engine
+ *  Author      : Amin Madani
+ *  Created     : 2026
+ * ------------------------------------------------------------
+ */
+
 session_start();
 
-if(isset($_SESSION['user_id']) && !isset($_GET['success'])){
+// Redirect logged-in user directly to dashboard unless success flag is present
+if (isset($_SESSION['user_id']) && !isset($_GET['success'])) {
     header("Location: ../dashboard/");
     exit();
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ورود به سیستم مدرسه</title>
+    <title>ورود به سامانه | ZeroLMS</title>
+    
     <link href="../css/bootstrap.rtl.min.css" rel="stylesheet">
-    <link href="../css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="../css/fontawesome.min.css">
-    <!-- <script disable-devtool-auto src='https://cdn.jsdelivr.net/npm/disable-devtool'></script> -->
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
+    <link rel="stylesheet" href="../css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="icon" type="image/png" sizes="16x16" href="../images/favicon.png">
+
     <style>
+        :root {
+            --bg-body: #0b1120;
+            --card-bg: #1e293b;
+            --border-color: #334155;
+            --input-bg: #0f172a;
+            --primary-blue: #2563eb;
+            --primary-blue-hover: #1d4ed8;
+            --text-main: #ffffff;
+            --text-sub: #cbd5e1;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            font-family: 'Vazirmatn', sans-serif;
+            box-sizing: border-box;
+        }
+
         body {
-            background: linear-gradient(135deg, #00d9ff, #1fd5db, #007bff);
-            font-family: 'font-iran-normal', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            align-items: center;
             justify-content: center;
-            overflow: hidden;
+            align-items: center;
             margin: 0;
-            position: relative;
-        }
-
-        body::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.1), transparent);
-            animation: pulse 15s infinite ease-in-out;
-            z-index: 0;
+            padding: 20px;
         }
 
         .login-card {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 40px 30px;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 217, 255, 0.3);
             width: 100%;
             max-width: 420px;
-            text-align: right;
-            position: relative;
-            z-index: 1;
-            animation: float 4s ease-in-out infinite;
-            border: 1px solid rgba(0, 217, 255, 0.2);
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 36px 32px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
         }
 
-        .login-card h2 {
-            font-weight: 800;
-            margin-bottom: 30px;
+        .login-header {
             text-align: center;
-            color: #00d9ff;
-            font-size: 2.2rem;
-            text-shadow: 0 0 10px rgba(0, 217, 255, 0.7);
-            animation: neonGlow 2s ease-in-out infinite;
+            margin-bottom: 28px;
         }
 
-        .form-control {
-            border-radius: 15px;
-            padding: 14px 18px;
-            border: 1px solid #00d9ff;
-            background: rgba(255, 255, 255, 0.8);
-            transition: all 0.4s ease;
-            font-size: 1rem;
-        }
-
-        .form-control:focus {
-            box-shadow: 0 0 15px rgba(0, 217, 255, 0.7);
-            border-color: #00b8d4;
-            transform: scale(1.03);
-            background: #fff;
-        }
-
-        .btn-login {
-            background: linear-gradient(45deg, #00d9ff, #007bff);
-            color: #fff;
-            border-radius: 15px;
-            width: 100%;
-            padding: 14px;
-            font-weight: 700;
-            border: none;
-            position: relative;
-            overflow: hidden;
-            transition: all 0.4s ease;
-            z-index: 1;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .btn-login::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -150%;
-            width: 150%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
-            transition: 0.6s ease;
-        }
-
-        .btn-login:hover::before {
-            left: 150%;
-        }
-
-        .btn-login:hover {
-            background: linear-gradient(45deg, #00b8d4, #005bff);
-            transform: translateY(-4px);
-            box-shadow: 0 8px 20px rgba(0, 217, 255, 0.5);
-        }
-
-        .input-group-text {
-            background: linear-gradient(45deg, #00d9ff, #007bff);
-            color: #fff;
-            border-radius: 0 15px 15px 0;
-            border: none;
-            transition: transform 0.4s ease;
-            padding: 0 15px;
-        }
-
-        .input-group-text:hover {
-            transform: scale(1.15);
-        }
-
-        .alert {
+        .login-logo {
+            width: 52px;
+            height: 52px;
+            background: var(--primary-blue);
             border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 25px;
-            animation: bounceIn 0.6s ease-in-out;
-            background: rgba(255, 255, 255, 0.9);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 1.5rem;
+            margin-bottom: 16px;
         }
 
-        .login-footer {
-            text-align: center;
-            margin-top: 25px;
-            font-size: 0.95rem;
-            color: #fff;
-            z-index: 1;
+        .login-title {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: var(--text-main);
+            margin: 0 0 6px 0;
         }
 
-        .login-footer a {
-            color: #00d9ff;
-            text-decoration: none;
+        .login-subtitle {
+            font-size: 0.88rem;
+            color: var(--text-sub);
+            margin: 0;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.88rem;
             font-weight: 600;
-            transition: all 0.3s ease;
+            color: var(--text-sub);
+            margin-bottom: 8px;
+            text-align: right;
         }
 
-        .login-footer a:hover {
-            color: #00b8d4;
-            text-shadow: 0 0 5px rgba(0, 217, 255, 0.5);
+        .input-wrapper {
+            position: relative;
         }
 
-       
-        @keyframes pulse {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 0.1; }
+        .form-input {
+            width: 100%;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            color: #ffffff;
+            border-radius: 10px;
+            padding: 12px 42px 12px 14px;
+            font-size: 0.95rem;
+            text-align: left;
+            direction: ltr;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
 
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
+        .form-input-password {
+            padding: 12px 44px 12px 48px !important;
         }
 
-        @keyframes neonGlow {
-            0%, 100% { text-shadow: 0 0 10px rgba(0, 217, 255, 0.7), 0 0 20px rgba(0, 217, 255, 0.4); }
-            50% { text-shadow: 0 0 20px rgba(0, 217, 255, 0.9), 0 0 30px rgba(0, 217, 255, 0.6); }
+        input[type="password"]::-ms-reveal,
+        input[type="password"]::-ms-clear {
+            display: none;
         }
 
-        @keyframes bounceIn {
-            0% { transform: scale(0.8); opacity: 0; }
-            50% { transform: scale(1.05); opacity: 0.8; }
-            100% { transform: scale(1); opacity: 1; }
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+            background-color: var(--input-bg);
+            color: #ffffff;
         }
 
-        @media (max-width: 576px) {
-            .login-card {
-                padding: 25px 15px;
-                max-width: 95%;
-            }
+        .form-input::placeholder {
+            color: #64748b;
+        }
 
-            .login-card h2 {
-                font-size: 1.8rem;
-            }
+        .input-icon {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 1rem;
+            pointer-events: none;
+            z-index: 2;
+        }
 
-            .btn-login {
-                padding: 12px;
-                font-size: 0.9rem;
-            }
+        .password-toggle {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            font-size: 1.05rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3;
+            transition: color 0.2s;
+        }
 
-            .form-control {
-                padding: 12px 15px;
-            }
+        .password-toggle:hover {
+            color: #ffffff;
+        }
+
+        .btn-submit {
+            width: 100%;
+            background-color: var(--primary-blue);
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 8px;
+        }
+
+        .btn-submit:hover {
+            background-color: var(--primary-blue-hover);
+        }
+
+        .alert-custom {
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 0.88rem;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .alert-danger-custom {
+            background-color: #450a0a;
+            border: 1px solid #7f1d1d;
+            color: #fecaca;
+        }
+
+        .alert-success-custom {
+            background-color: #064e3b;
+            border: 1px solid #065f46;
+            color: #a7f3d0;
+        }
+
+        .back-home {
+            text-align: center;
+            margin-top: 24px;
+        }
+
+        .back-home a {
+            color: var(--text-sub);
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+
+        .back-home a:hover {
+            color: #ffffff;
         }
     </style>
 </head>
 <body>
-    <div style="flex: 1; display: flex; align-items: center; justify-content: center;">
-        <div class="login-card">
-    <?php if(isset($_GET['forgot'])): ?>
-        <h2>فراموشی رمز عبور</h2>
-        <div class="alert alert-info text-center">
-            لطفاً با مدرسه تماس بگیرید و درخواست تغییر رمز عبور خود را اعلام کنید.
-        </div>
-        <div class="text-center">
-            <a href="index.php" class="btn btn-login">بازگشت به ورود</a>
-        </div>
-    <?php else: ?>
-        <h2>ورود به مدرسه</h2>
-        <form action="login_process.php" method="POST" autocomplete="on">
-            <?php if(isset($_GET['error'])): ?>
-                <div class="alert alert-danger text-center">نام کاربری یا رمز عبور اشتباه است!</div>
-            <?php endif; ?>
-            <?php if(isset($_GET['success'])): ?>
-                <div class="alert alert-success text-center">
-                    ورود موفقیت آمیز بود، در حال انتقال به داشبورد...
-                </div>
-                <script>
-                    setTimeout(function(){
-                        window.location.href = "../dashboard/";
-                    }, 3000);
-                </script>
-            <?php endif; ?>
 
-            <div class="mb-3">
-                <label for="username" class="form-label">نام کاربری</label>
-                <input style="direction:ltr;" type="text" class="form-control" autocomplete="username" id="username" name="username" placeholder="نام کاربری خود را وارد نمایید ..." required>
+    <div class="login-card">
+        <div class="login-header">
+            <div class="login-logo">
+                <i class="fas fa-layer-group"></i>
             </div>
-            <div class="mb-3">
-                <label for="password" class="form-label">رمز عبور</label>
-                <div class="input-group">
-                    <input style="direction:ltr;" type="password" class="form-control" autocomplete="current-password" id="password" name="password" placeholder="رمز عبور خود را وارد نمایید ..." required>
-                    <span class="input-group-text"><i class="fas fa-lock"></i></span>
+            <h1 class="login-title">ورود به سامانه ZeroLMS</h1>
+            <p class="login-subtitle">نام کاربری و رمز عبور خود را وارد نمایید</p>
+        </div>
+
+        <?php if (isset($_GET['error'])): ?>
+            <div class="alert-custom alert-danger-custom">
+                <i class="fas fa-exclamation-circle me-1"></i> نام کاربری یا کلمه عبور اشتباه است.
+            </div>
+        <?php endif; ?>
+
+        <?php if (isset($_GET['success'])): ?>
+            <div class="alert-custom alert-success-custom">
+                <i class="fas fa-check-circle me-1"></i> ورود موفقیت‌آمیز بود. در حال انتقال به داشبورد...
+            </div>
+            <script>
+                setTimeout(() => { window.location.href = "../dashboard/"; }, 800);
+            </script>
+        <?php endif; ?>
+
+        <form action="login_process.php" method="POST" autocomplete="on">
+            <div class="form-group">
+                <label for="username" class="form-label">نام کاربری</label>
+                <div class="input-wrapper">
+                    <input type="text" class="form-input" id="username" name="username" placeholder="نام کاربری" autocomplete="username" required>
+                    <i class="fas fa-user input-icon"></i>
                 </div>
             </div>
-            
-            <button type="submit" class="btn btn-login">ورود</button>
+
+            <div class="form-group">
+                <label for="password" class="form-label">کلمه عبور</label>
+                <div class="input-wrapper">
+                    <input type="password" class="form-input form-input-password" id="password" name="password" placeholder="کلمه عبور" autocomplete="current-password" required>
+                    <i class="fas fa-lock input-icon"></i>
+                    <button type="button" class="password-toggle" onclick="togglePassword()" title="نمایش کلمه عبور">
+                        <i class="fas fa-eye" id="toggleIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-submit">
+                <i class="fas fa-sign-in-alt me-1"></i> ورود به حساب
+            </button>
         </form>
-        <div class="text-center mt-3">
-            <a href="?forgot=1" style="color:#007bff; text-decoration:none; font-weight:600;">
-                رمز عبور خود را فراموش کرده‌ام؟
+
+        <div class="back-home">
+            <a href="../">
+                <i class="fas fa-arrow-right me-1"></i> بازگشت به صفحه اصلی
             </a>
         </div>
-    <?php endif; ?>
-</div>
-
     </div>
 
-    <footer style="text-align: center; padding: 10px 0; font-size: 14px; color: #fff;">
-        برنامه‌نویسی شده توسط 
-        <a href="https://aminmadani.ir" target="_blank">محمدامین مدنی محمدی</a>
-    </footer>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function togglePassword() {
+            const passInput = document.getElementById('password');
+            const toggleIcon = document.getElementById('toggleIcon');
+            if (passInput.type === 'password') {
+                passInput.type = 'text';
+                toggleIcon.classList.remove('fa-eye');
+                toggleIcon.classList.add('fa-eye-slash');
+            } else {
+                passInput.type = 'password';
+                toggleIcon.classList.remove('fa-eye-slash');
+                toggleIcon.classList.add('fa-eye');
+            }
+        }
+    </script>
 </body>
 </html>

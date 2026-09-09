@@ -1,7 +1,29 @@
 <?php
+/**
+ *     _____                    __   __  ___ _____
+ *    /__  /  ___  _________   / /  /  |/  // ___/
+ *      / /  / _ \/ ___/ __ \ / /  / /|_/ / \__ \ 
+ *     / /__/  __/ /  / /_/ // /__/ /  / / ___/ / 
+ *    /____/\___/_/   \____//____/_/  /_/ /____/  
+ * 
+ * ------------------------------------------------------------
+ *  System      : Zero LMS Core Engine
+ *  Author      : Amin Madani
+ *  Created     : 2026
+ *  Notice      : Unauthorized copying or modification of this file,
+ *                via any medium is strictly prohibited.
+ * ------------------------------------------------------------
+ */
+
 session_start();
 require_once '../db.php';
 
+/**
+ * Escape HTML special characters for safe output.
+ * 
+ * @param string|null $string Raw string input
+ * @return string Escaped string
+ */
 function e($string) {
     return htmlspecialchars($string ?? '', ENT_QUOTES, 'UTF-8');
 }
@@ -12,17 +34,18 @@ $dir = $lang === 'fa' ? 'rtl' : 'ltr';
 
 $teacher = null;
 if ($pdo && $id > 0) {
-    // کوئری آپدیت شده: اضافه شدن u.name_en
+    // Updated Query: Included u.name_en column for internationalization
     $stmt = $pdo->prepare("SELECT u.name, u.name_en, t.* FROM teachers t JOIN users u ON t.user_id = u.id WHERE u.id = ?");
     $stmt->execute([$id]);
     $teacher = $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
+// Display error if teacher profile does not exist
 if (!$teacher) {
     die("استاد مورد نظر یافت نشد.");
 }
 
-// متون دوزبانه (اضافه شدن پیام خالی بودن بیوگرافی)
+// Bilingual UI strings dictionary
 $t_page = [
     'fa' => [
         'back' => 'برگشت به لیست اساتید', 
@@ -38,11 +61,11 @@ $t_page = [
     ]
 ][$lang];
 
-// تنظیم متغیرها بر اساس زبان انتخاب شده با منطق اصلاح شده
+// Set localized variable names according to selected language
 $t_name = ($lang === 'en' && !empty($teacher['name_en'])) ? $teacher['name_en'] : $teacher['name'];
 $t_spec = ($lang === 'en' && !empty($teacher['specialty_en'])) ? $teacher['specialty_en'] : ($teacher['specialty'] ?? $t_page['no_info']);
 
-// منطق اصلاح شده بیوگرافی برای جلوگیری از نمایش متن فارسی در نسخه انگلیسی
+// Revised biography logic to avoid showing Persian biography in English mode
 if ($lang === 'en') {
     $t_bio = !empty($teacher['bio_en']) ? $teacher['bio_en'] : $t_page['no_info'];
 } else {
@@ -56,12 +79,12 @@ if ($lang === 'en') {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     
-    <!-- SEO تگ‌های اختصاصی برای نام استاد -->
+    <!-- SEO Metadata for Teacher Profile Page -->
     <title><?= $lang === 'fa' ? 'بیوگرافی' : 'Biography' ?> <?= e($t_name) ?> | دبیرستان شهید باهنر ۳</title>
     <meta name="description" content="<?= e(mb_substr(strip_tags($t_bio), 0, 160)) ?>">
     <meta name="keywords" content="<?= e($t_name) ?>, اساتید باهنر ۳, سمپاد کرج, <?= e($t_spec) ?>">
     
-    <!-- JSON-LD برای شناسایی بهتر گوگل (Schema.org) -->
+    <!-- JSON-LD Structured Data Schema (Schema.org) -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -86,6 +109,7 @@ if ($lang === 'en') {
 </head>
 <body>
 
+    <!-- Header Navigation -->
     <header class="bg-white shadow-sm py-4 sticky top-0 z-50">
         <div class="container mx-auto px-4 max-w-5xl flex justify-between items-center">
             <a href="index.php" class="text-slate-500 hover:text-blue-600 font-bold transition-colors">
@@ -97,7 +121,7 @@ if ($lang === 'en') {
     <main class="py-12">
         <div class="container mx-auto px-4 max-w-4xl">
             
-            <!-- کارت اصلی پروفایل -->
+            <!-- Main Teacher Profile Card -->
             <div class="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100">
                 <div class="profile-header p-8 md:p-12 text-center md:text-<?= $lang === 'fa' ? 'right' : 'left' ?> md:flex items-center gap-8">
                     <div class="w-40 h-40 mx-auto md:mx-0 rounded-2xl overflow-hidden border-4 border-white/20 shadow-2xl shrink-0">
@@ -111,7 +135,7 @@ if ($lang === 'en') {
                 </div>
 
                 <div class="p-8 md:p-12 grid gap-12">
-                    <!-- بخش بیوگرافی -->
+                    <!-- Biography Section -->
                     <section>
                         <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-3">
                             <i class="fa-solid fa-graduation-cap text-blue-600"></i>
@@ -122,7 +146,7 @@ if ($lang === 'en') {
                         </div>
                     </section>
 
-                    <!-- بخش تخصص -->
+                    <!-- Specialty Section -->
                     <section>
                         <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-3">
                             <i class="fa-solid fa-award text-blue-600"></i>
@@ -135,7 +159,7 @@ if ($lang === 'en') {
                 </div>
             </div>
 
-            <!-- فوتر کوچک اختصاصی -->
+            <!-- Page Footer -->
             <div class="mt-12 text-center text-slate-400 text-sm">
                 &copy; <?= date('Y') ?> <?= $lang === 'fa' ? 'دبیرستان هوشمند شهید باهنر ۳ کرج | مرکز استعدادهای درخشان' : 'Bahonar 3 High School | NODET' ?>
             </div>

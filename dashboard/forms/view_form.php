@@ -1,4 +1,20 @@
 <?php
+/**
+ *     _____                    __   __  ___ _____
+ *    /__  /  ___  _________   / /  /  |/  // ___/
+ *      / /  / _ \/ ___/ __ \ / /  / /|_/ / \__ \ 
+ *     / /__/  __/ /  / /_/ // /__/ /  / / ___/ / 
+ *    /____/\___/_/   \____//____/_/  /_/ /____/  
+ * 
+ * ------------------------------------------------------------
+ *  System      : Zero LMS Core Engine
+ *  Author      : Amin Madani
+ *  Created     : 2026
+ *  Notice      : Unauthorized copying or modification of this file,
+ *                via any medium is strictly prohibited.
+ * ------------------------------------------------------------
+ */
+
 session_start();
 require_once '../../db.php';
 date_default_timezone_set('Asia/Tehran');
@@ -22,18 +38,18 @@ if (json_last_error() !== JSON_ERROR_NONE) {
     die('خطا در پردازش JSON: ' . json_last_error_msg());
 }
 
-
+// Generate device tracking cookie
 $device_id = $_COOKIE['device_id'] ?? null;
 if (!$device_id) {
     $device_id = bin2hex(random_bytes(16));
     setcookie('device_id', $device_id, time() + (365 * 24 * 60 * 60), '/'); 
 }
 
-
 $stmt = $pdo->prepare("SELECT id, submitted_at FROM form_responses WHERE form_id = ? AND device_id = ?");
 $stmt->execute([$form['id'], $device_id]);
 $existing_response = $stmt->fetch(PDO::FETCH_ASSOC);
 $now = new DateTime();
+
 if ($form['start_date'] && $now < new DateTime($form['start_date'])) {
     die('<header><link rel="stylesheet" href="../../css/fontawesome.min.css">
     <link rel="stylesheet" href="../assets/style.css"></header><style>body {min-height:60vh !important;}</style><h1 style="text-align:center;">زمان پاسخگویی به فرم هنوز شروع نشده است.</h1>');
@@ -42,6 +58,8 @@ if ($form['end_date'] && $now > new DateTime($form['end_date'])) {
     die('<header><link rel="stylesheet" href="../../css/fontawesome.min.css">
     <link rel="stylesheet" href="../assets/style.css"></header><style>body {min-height:60vh !important;}</style><h1 style="text-align:center;">زمان پاسخ گویی به فرم به اتمام رسیده است.</h1>');
 }
+
+// Handle dynamic form response submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$existing_response) {
     $response_data = $_POST['response'] ?? [];
     $response_json = json_encode($response_data, JSON_UNESCAPED_UNICODE);
@@ -85,17 +103,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$existing_response) {
     <div class="topbar">
         <span><?php echo htmlspecialchars($form['title']); ?></span>
         <?php if ($form['logo_url']): ?>
-    <img src="<?php echo htmlspecialchars($form['logo_url']); ?>" alt="لوگوی فرم" class="img-fluid mb-3" style="max-height: 100px;">
-<?php endif; ?>
+            <?php $logo_src = (strpos($form['logo_url'], 'http') === 0 || strpos($form['logo_url'], '/') === 0) ? $form['logo_url'] : '../../' . $form['logo_url']; ?>
+            <img src="<?php echo htmlspecialchars($logo_src); ?>" alt="لوگوی فرم" class="img-fluid mb-3" style="max-height: 100px;">
+        <?php endif; ?>
     </div>
     <div class="container mt-4 form-container">
         <?php if ($existing_response): ?>
             <div class="alert alert-info">
-                شما قبلاً این فرم را در تاریخ <?php echo $existing_response['submitted_at']; ?> پر کرده‌اید.
-                کد پیگیری: <strong><?php echo $existing_response['id']; ?></strong>
+                شما قبلاً این فرم را در تاریخ <?php echo htmlspecialchars($existing_response['submitted_at']); ?> پر کرده‌اید.
+                کد پیگیری: <strong><?php echo (int)$existing_response['id']; ?></strong>
             </div>
         <?php else: ?>
-            <div class="form-description"><?php echo $content['description'] ?? ''; ?></div>
+            <div class="form-description"><?php echo nl2br(htmlspecialchars($content['description'] ?? '')); ?></div>
             <div id="formMessage"></div>
             <form id="responseForm">
                 <?php foreach ($content['questions'] as $index => $question): ?>
@@ -191,7 +210,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$existing_response) {
             }
         });
 
-        
         document.querySelectorAll('input[type="range"]').forEach(input => {
             const valueSpan = input.nextElementSibling?.querySelector('.range-value');
             if (valueSpan) {

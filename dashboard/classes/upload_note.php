@@ -1,9 +1,24 @@
 <?php
+/**
+ *     _____                    __   __  ___ _____
+ *    /__  /  ___  _________   / /  /  |/  // ___/
+ *      / /  / _ \/ ___/ __ \ / /  / /|_/ / \__ \ 
+ *     / /__/  __/ /  / /_/ // /__/ /  / / ___/ / 
+ *    /____/\___/_/   \____//____/_/  /_/ /____/  
+ * 
+ * ------------------------------------------------------------
+ *  System      : Zero LMS Core Engine
+ *  Author      : Amin Madani
+ *  Created     : 2026
+ *  Notice      : Unauthorized copying or modification of this file,
+ *                via any medium is strictly prohibited.
+ * ------------------------------------------------------------
+ */
+
 session_start();
 require_once '../../db.php';
 
 header('Content-Type: application/json');
-ob_clean();
 
 if (!isset($_SESSION['user_id']) || ($_SESSION['role'] !== 'teacher' && $_SESSION['role'] !== 'admin')) {
     echo json_encode(['success' => false, 'error' => 'عدم دسترسی']);
@@ -19,14 +34,13 @@ if ($class_course_id <= 0 || empty($title) || !$file || $file['error'] !== UPLOA
     exit();
 }
 
-
+// Validate file extension against allowed types
 $allowed_extensions = ['pdf', 'docx', 'jpg', 'png'];
 $file_ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 if (!in_array($file_ext, $allowed_extensions)) {
     echo json_encode(['success' => false, 'error' => 'فرمت فایل پشتیبانی نمی‌شود']);
     exit();
 }
-
 
 if ($_SESSION['role'] !== 'admin') {
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM ClassCourseTeachers WHERE teacher_id = :teacher_id AND class_course_id = :class_course_id");
@@ -37,7 +51,6 @@ if ($_SESSION['role'] !== 'admin') {
         exit();
     }
 }
-
 
 $upload_dir = 'uploads/notes/';
 if (!is_dir('../../' . $upload_dir)) {
@@ -51,7 +64,6 @@ if (!move_uploaded_file($file['tmp_name'], '../../' . $upload_path)) {
     echo json_encode(['success' => false, 'error' => 'خطا در آپلود فایل']);
     exit();
 }
-
 
 $stmt = $pdo->prepare("
     INSERT INTO notes (class_course_id, teacher_id, title, file_path, created_at) 
