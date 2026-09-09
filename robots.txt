@@ -1,0 +1,47 @@
+# robots.txt for ZeroLMS / bahonarkaraj.ir
+User-agent: *
+
+# Allow public pages and assets
+Allow: /
+Allow: /info.html
+Allow: /blog/
+Allow: /teachers/
+Allow: /gallery/
+Allow: /login/
+Allow: /css/
+Allow: /js/
+Allow: /images/
+Allow: /assets/
+Allow: /fonts/
+Allow: /uploads/blog/
+Allow: /uploads/gallery/
+Allow: /uploads/teachers/
+Allow: /uploads/logos/
+Allow: /uploads/badges/
+Allow: /uploads/images/
+
+# Disallow admin panels, dashboards, and sensitive database/test files
+Disallow: /dashboard/
+Disallow: /dbfiles/
+Disallow: /tests/
+Disallow: /kharazmi/
+Disallow: /Uploads/homework/
+Disallow: /uploads/homework/
+Disallow: /Uploads/exams/
+Disallow: /uploads/exams/
+Disallow: /Uploads/notes/
+Disallow: /uploads/notes/
+Disallow: /Uploads/recordings/
+Disallow: /uploads/recordings/
+Disallow: /Uploads/class_files/
+Disallow: /uploads/class_files/
+Disallow: /Uploads/admins/
+Disallow: /uploads/admins/
+Disallow: /*.sql$
+Disallow: /*.log$
+Disallow: /*.zip$
+Disallow: /*.env$
+
+# XML Sitemaps
+Sitemap: https://bahonarkaraj.ir/sitemap.xml
+Sitemap: https://zerolms.aminmadani.xyz/sitemap.xml
