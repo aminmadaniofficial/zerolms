@@ -54,6 +54,11 @@ if (file_exists('jdf.php')) {
     require_once 'jdf.php';
 }
 
+// Include Lightweight Inline SVG Icon library
+if (file_exists('icons.php')) {
+    require_once 'icons.php';
+}
+
 /**
  * Convert a Gregorian date string to Jalali (Shamsi) date format.
  * 
@@ -359,17 +364,17 @@ $t = $i18n[$lang];
     }
     </script>
 
-    <!-- Core Precompiled Tailwind + Custom Stylesheet (Critical CSS) -->
-    <link rel="stylesheet" href="css/landing.min.css">
+    <!-- Core Precompiled Tailwind + Custom Stylesheet (Inlined for 0ms Render-Blocking) -->
+    <style>
+    <?php include __DIR__ . '/css/landing.min.css'; ?>
+    </style>
 
     <!-- Non-critical External Fonts & Third-Party Library Stylesheets (Loaded Asynchronously) -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Vazirmatn:wght@400;500;700;800;900&display=swap" media="print" onload="this.media='all'">
-    <link rel="stylesheet" href="css/all.min.css" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/swiper-bundle.min.css" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/aos.css" media="print" onload="this.media='all'">
     <noscript>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Vazirmatn:wght@400;500;700;800;900&display=swap">
-        <link rel="stylesheet" href="css/all.min.css">
         <link rel="stylesheet" href="css/swiper-bundle.min.css">
         <link rel="stylesheet" href="css/aos.css">
     </noscript>
@@ -385,14 +390,14 @@ $t = $i18n[$lang];
             <div class="flex items-center gap-6">
                 <a href="tel:<?php echo e($t['topbar']['phone']); ?>"
                     class="hover:text-blue-300 transition-colors flex items-center gap-2" dir="ltr">
-                    <i class="fa-solid fa-phone"></i> <?php echo e($t['topbar']['phone']); ?>
+                    <?php echo icon('phone', 'w-4 h-4 text-blue-300 inline-block'); ?> <?php echo e($t['topbar']['phone']); ?>
                 </a>
                 <a href="mailto:<?php echo e($t['topbar']['email']); ?>"
                     class="hover:text-blue-300 transition-colors flex items-center gap-2">
-                    <i class="fa-solid fa-envelope"></i> <?php echo e($t['topbar']['email']); ?>
+                    <?php echo icon('envelope', 'w-4 h-4 text-blue-300 inline-block'); ?> <?php echo e($t['topbar']['email']); ?>
                 </a>
                 <span class="flex items-center gap-2">
-                    <i class="fa-solid fa-clock"></i> <?php echo e($t['topbar']['hours']); ?>
+                    <?php echo icon('clock', 'w-4 h-4 text-blue-300 inline-block'); ?> <?php echo e($t['topbar']['hours']); ?>
                 </span>
             </div>
 
@@ -400,8 +405,8 @@ $t = $i18n[$lang];
             <div class="flex items-center gap-3">
                 <a href="?lang=<?php echo $lang === 'fa' ? 'en' : 'fa'; ?>"
                     onclick="sessionStorage.setItem('scroll', window.scrollY);"
-                    class="bg-white/10 hover:bg-white/20 px-3 py-1 rounded text-xs font-bold transition-colors">
-                    <i class="fa-solid fa-globe me-1"></i> <?php echo $lang === 'fa' ? 'English' : 'فارسی'; ?>
+                    class="bg-white/10 hover:bg-white/20 px-3 py-1 rounded text-xs font-bold transition-colors inline-flex items-center">
+                    <?php echo icon('globe', 'w-3.5 h-3.5 me-1 inline-block'); ?> <?php echo $lang === 'fa' ? 'English' : 'فارسی'; ?>
                 </a>
             </div>
         </div>
@@ -412,7 +417,7 @@ $t = $i18n[$lang];
         <div class="container mx-auto px-4 max-w-7xl flex justify-between items-center">
             <!-- School Brand / Logo -->
             <a href="index.php" class="flex items-center gap-3">
-                <img src="./images/logo.webp" alt="Logo" class="h-12 w-auto" width="48" height="48"
+                <img src="./images/logo.webp" alt="Logo" class="h-12 w-12 shrink-0 object-contain" width="48" height="48"
                     onerror="this.src='./images/logo.png'">
                 <div class="flex flex-col">
                     <span class="font-bold text-xl text-slate-800 leading-tight">
@@ -437,7 +442,7 @@ $t = $i18n[$lang];
             <div class="flex items-center gap-3">
                 <?php if (isset($_SESSION['user_id'])): ?>
                     <a href="dashboard" class="hidden sm:flex btn-primary">
-                        <i class="fa-regular fa-user-circle me-2"></i> <?php echo e($t['nav']['portal']); ?>
+                        <?php echo icon('user-circle', 'w-5 h-5 me-2 inline-block'); ?> <?php echo e($t['nav']['portal']); ?>
                     </a>
                 <?php else: ?>
                     <a href="login" class="hidden sm:flex btn-primary">
@@ -445,8 +450,8 @@ $t = $i18n[$lang];
                     </a>
                 <?php endif; ?>
 
-                <button id="mobileMenuBtn" aria-label="منوی اصلی" class="lg:hidden w-10 h-10 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center text-lg hover:bg-slate-200 transition-colors">
-                    <i class="fa-solid fa-bars"></i>
+                <button id="mobileMenuBtn" aria-label="منوی اصلی" class="lg:hidden w-10 h-10 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200 transition-colors">
+                    <?php echo icon('bars', 'w-5 h-5'); ?>
                 </button>
             </div>
         </div>
@@ -458,21 +463,21 @@ $t = $i18n[$lang];
         <div class="flex justify-between items-center border-b border-slate-100 pb-4 mb-6">
             <span class="font-bold text-lg text-slate-800">منوی دسترسی</span>
             <button id="closeMobileMenu" aria-label="بستن منو" class="w-8 h-8 rounded bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-red-100 hover:text-red-600 transition-colors">
-                <i class="fa-solid fa-xmark"></i>
+                <?php echo icon('xmark', 'w-5 h-5'); ?>
             </button>
         </div>
         <nav class="flex flex-col gap-4 font-medium text-slate-700">
-            <a href="index.php" class="hover:text-blue-600 transition-colors"><i class="fa-solid fa-house w-6 text-slate-400"></i> <?php echo e($t['nav']['home']); ?></a>
-            <a href="#about" class="hover:text-blue-600 transition-colors"><i class="fa-solid fa-circle-info w-6 text-slate-400"></i> <?php echo e($t['nav']['about']); ?></a>
-            <a href="#teachers" class="hover:text-blue-600 transition-colors"><i class="fa-solid fa-users w-6 text-slate-400"></i> <?php echo e($t['nav']['teachers']); ?></a>
-            <a href="#blog" class="hover:text-blue-600 transition-colors"><i class="fa-solid fa-newspaper w-6 text-slate-400"></i> <?php echo e($t['nav']['blog']); ?></a>
-            <a href="#contact" class="hover:text-blue-600 transition-colors"><i class="fa-solid fa-phone w-6 text-slate-400"></i> <?php echo e($t['nav']['contact']); ?></a>
+            <a href="index.php" class="hover:text-blue-600 transition-colors flex items-center gap-2"><?php echo icon('house', 'w-5 h-5 text-slate-400'); ?> <?php echo e($t['nav']['home']); ?></a>
+            <a href="#about" class="hover:text-blue-600 transition-colors flex items-center gap-2"><?php echo icon('circle-info', 'w-5 h-5 text-slate-400'); ?> <?php echo e($t['nav']['about']); ?></a>
+            <a href="#teachers" class="hover:text-blue-600 transition-colors flex items-center gap-2"><?php echo icon('users', 'w-5 h-5 text-slate-400'); ?> <?php echo e($t['nav']['teachers']); ?></a>
+            <a href="#blog" class="hover:text-blue-600 transition-colors flex items-center gap-2"><?php echo icon('newspaper', 'w-5 h-5 text-slate-400'); ?> <?php echo e($t['nav']['blog']); ?></a>
+            <a href="#contact" class="hover:text-blue-600 transition-colors flex items-center gap-2"><?php echo icon('phone', 'w-5 h-5 text-slate-400'); ?> <?php echo e($t['nav']['contact']); ?></a>
         </nav>
         <div class="mt-auto pt-6 border-t border-slate-100">
             <a href="login" class="flex justify-center btn-primary w-full"><?php echo e($t['nav']['login']); ?></a>
             <div class="flex justify-center mt-4">
-                <a href="?lang=<?php echo $lang === 'fa' ? 'en' : 'fa'; ?>" class="text-sm font-bold text-slate-500 hover:text-blue-600">
-                    <i class="fa-solid fa-globe me-1"></i>
+                <a href="?lang=<?php echo $lang === 'fa' ? 'en' : 'fa'; ?>" class="text-sm font-bold text-slate-500 hover:text-blue-600 inline-flex items-center">
+                    <?php echo icon('globe', 'w-4 h-4 me-1 inline-block'); ?>
                     <?php echo $lang === 'fa' ? 'Switch to English' : 'تغییر به فارسی'; ?>
                 </a>
             </div>
@@ -567,7 +572,7 @@ $t = $i18n[$lang];
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div class="card-standard p-8 text-center" data-aos="fade-up" data-aos-delay="100">
                         <div class="w-16 h-16 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-3xl mx-auto mb-6">
-                            <i class="fa-solid fa-chalkboard-user"></i>
+                            <?php echo icon('chalkboard-user', 'w-8 h-8'); ?>
                         </div>
                         <h3 class="text-xl font-bold text-slate-800 mb-3"><?php echo e($t['features']['f1_title']); ?></h3>
                         <p class="text-slate-600 text-sm leading-relaxed"><?php echo e($t['features']['f1_desc']); ?></p>
@@ -575,7 +580,7 @@ $t = $i18n[$lang];
 
                     <div class="card-standard p-8 text-center" data-aos="fade-up" data-aos-delay="200">
                         <div class="w-16 h-16 rounded-full bg-amber-50 text-amber-700 flex items-center justify-center text-3xl mx-auto mb-6">
-                            <i class="fa-solid fa-flask"></i>
+                            <?php echo icon('flask', 'w-8 h-8'); ?>
                         </div>
                         <h3 class="text-xl font-bold text-slate-800 mb-3"><?php echo e($t['features']['f2_title']); ?></h3>
                         <p class="text-slate-600 text-sm leading-relaxed"><?php echo e($t['features']['f2_desc']); ?></p>
@@ -583,7 +588,7 @@ $t = $i18n[$lang];
 
                     <div class="card-standard p-8 text-center" data-aos="fade-up" data-aos-delay="300">
                         <div class="w-16 h-16 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-3xl mx-auto mb-6">
-                            <i class="fa-solid fa-microchip"></i>
+                            <?php echo icon('microchip', 'w-8 h-8'); ?>
                         </div>
                         <h3 class="text-xl font-bold text-slate-800 mb-3"><?php echo e($t['features']['f3_title']); ?></h3>
                         <p class="text-slate-600 text-sm leading-relaxed"><?php echo e($t['features']['f3_desc']); ?></p>
@@ -591,7 +596,7 @@ $t = $i18n[$lang];
 
                     <div class="card-standard p-8 text-center" data-aos="fade-up" data-aos-delay="400">
                         <div class="w-16 h-16 rounded-full bg-amber-50 text-amber-700 flex items-center justify-center text-3xl mx-auto mb-6">
-                            <i class="fa-solid fa-user-tie"></i>
+                            <?php echo icon('user-tie', 'w-8 h-8'); ?>
                         </div>
                         <h3 class="text-xl font-bold text-slate-800 mb-3"><?php echo e($t['features']['f4_title']); ?></h3>
                         <p class="text-slate-600 text-sm leading-relaxed"><?php echo e($t['features']['f4_desc']); ?></p>
@@ -655,7 +660,7 @@ $t = $i18n[$lang];
                 <div class="text-center mt-12">
                     <a href="teachers/index.php" class="btn-primary">
                         <?php echo e($t['faculty']['view_all']); ?>
-                        <i class="fa-solid fa-arrow-<?php echo $lang === 'fa' ? 'left' : 'right'; ?> ms-2"></i>
+                        <?php echo icon($lang === 'fa' ? 'arrow-left' : 'arrow-right', 'w-4 h-4 ms-2 inline-block'); ?>
                     </a>
                 </div>
             </div>
@@ -686,14 +691,14 @@ $t = $i18n[$lang];
                                     ?>
                                     <img src="<?php echo e($img); ?>" alt="<?php echo e($post['title']); ?>" width="400" height="225" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='./images/posts/default.webp'">
                                     
-                                    <time datetime="<?php echo e($post['created_at']); ?>" class="absolute top-4 <?php echo $lang === 'fa' ? 'right-4' : 'left-4'; ?> bg-white px-3 py-1 rounded shadow-sm text-xs font-bold text-blue-600">
-                                        <i class="fa-regular fa-calendar me-1"></i>
+                                    <time datetime="<?php echo e($post['created_at']); ?>" class="absolute top-4 <?php echo $lang === 'fa' ? 'right-4' : 'left-4'; ?> bg-white px-3 py-1 rounded shadow-sm text-xs font-bold text-blue-600 inline-flex items-center">
+                                        <?php echo icon('calendar', 'w-3.5 h-3.5 me-1 inline-block'); ?>
                                         <?php echo $lang === 'fa' ? toJalali($post['created_at']) : date('M d, Y', strtotime($post['created_at'])); ?>
                                     </time>
                                 </a>
                                 <div class="p-6 flex flex-col flex-grow">
                                     <div class="text-xs text-slate-500 mb-3 flex items-center gap-2">
-                                        <i class="fa-solid fa-user-pen"></i> <?php echo e($post['author_name']); ?>
+                                        <?php echo icon('user-pen', 'w-3.5 h-3.5 inline-block'); ?> <?php echo e($post['author_name']); ?>
                                     </div>
                                     <h3 class="text-xl font-bold text-slate-800 mb-4 line-clamp-2 hover:text-blue-600 transition-colors">
                                         <a href="blog/post/index.php?id=<?php echo (int) $post['id']; ?>"><?php echo e($post['title']); ?></a>
@@ -701,7 +706,7 @@ $t = $i18n[$lang];
                                     <div class="mt-auto">
                                         <a href="blog/post/index.php?id=<?php echo (int) $post['id']; ?>" aria-label="ادامه مطلب خبر <?php echo e($post['title']); ?>" class="text-blue-600 font-bold text-sm inline-flex items-center gap-2 hover:text-blue-800 transition-colors group">
                                             <?php echo e($t['blog']['read']); ?>
-                                            <i class="fa-solid fa-arrow-<?php echo $lang === 'fa' ? 'left' : 'right'; ?> group-hover:translate-x-<?php echo $lang === 'fa' ? '-4px' : '4px'; ?> transition-transform"></i>
+                                            <?php echo icon($lang === 'fa' ? 'arrow-left' : 'arrow-right', 'w-4 h-4 transition-transform group-hover:translate-x-' . ($lang === 'fa' ? '-4px' : '4px')); ?>
                                         </a>
                                     </div>
                                 </div>
@@ -717,7 +722,7 @@ $t = $i18n[$lang];
                 <div class="text-center mt-12" data-aos="fade-up">
                     <a href="blog/index.php" class="btn-primary">
                         <?php echo $lang === 'fa' ? 'نمایش همه اخبار' : 'View All News'; ?>
-                        <i class="fa-solid fa-arrow-<?php echo $lang === 'fa' ? 'left' : 'right'; ?> ms-2"></i>
+                        <?php echo icon($lang === 'fa' ? 'arrow-left' : 'arrow-right', 'w-4 h-4 ms-2 inline-block'); ?>
                     </a>
                 </div>
             </div>
@@ -737,7 +742,7 @@ $t = $i18n[$lang];
                         <div class="space-y-6">
                             <div class="flex items-start gap-4">
                                 <div class="w-12 h-12 rounded-lg bg-white shadow-sm flex items-center justify-center text-blue-600 text-xl shrink-0">
-                                    <i class="fa-solid fa-location-dot"></i>
+                                    <?php echo icon('location-dot', 'w-6 h-6'); ?>
                                 </div>
                                 <div>
                                     <h3 class="font-bold text-slate-800 text-sm mb-1"><?php echo e($t['contact']['address_lbl']); ?></h3>
@@ -747,7 +752,7 @@ $t = $i18n[$lang];
 
                             <div class="flex items-start gap-4">
                                 <div class="w-12 h-12 rounded-lg bg-white shadow-sm flex items-center justify-center text-blue-600 text-xl shrink-0">
-                                    <i class="fa-solid fa-phone"></i>
+                                    <?php echo icon('phone', 'w-6 h-6'); ?>
                                 </div>
                                 <div>
                                     <h3 class="font-bold text-slate-800 text-sm mb-1"><?php echo e($t['contact']['phone_lbl']); ?></h3>
@@ -757,7 +762,7 @@ $t = $i18n[$lang];
 
                             <div class="flex items-start gap-4">
                                 <div class="w-12 h-12 rounded-lg bg-white shadow-sm flex items-center justify-center text-blue-600 text-xl shrink-0">
-                                    <i class="fa-solid fa-envelope"></i>
+                                    <?php echo icon('envelope', 'w-6 h-6'); ?>
                                 </div>
                                 <div>
                                     <h3 class="font-bold text-slate-800 text-sm mb-1"><?php echo e($t['contact']['email_lbl']); ?></h3>
@@ -786,7 +791,7 @@ $t = $i18n[$lang];
             <div class="grid grid-cols-1 md:grid-cols-12 gap-12 mb-12">
                 <div class="md:col-span-5">
                     <div class="flex items-center gap-3 mb-6">
-                        <img src="./images/logo.webp" alt="Logo" class="h-10 w-auto" width="40" height="40" loading="lazy" decoding="async" onerror="this.src='./images/logo.png'">
+                        <img src="./images/logo.webp" alt="Logo" class="h-10 w-10 shrink-0 object-contain" width="40" height="40" loading="lazy" decoding="async" onerror="this.src='./images/logo.png'">
                         <span class="font-bold text-xl text-white">
                             <?php echo $lang === 'fa' ? 'باهنر ۳' : 'BAHONAR 3'; ?>
                         </span>
@@ -810,11 +815,11 @@ $t = $i18n[$lang];
                     <h3 class="text-white font-bold mb-6 text-base"><?php echo e($t['nav']['contact']); ?></h3>
                     <ul class="space-y-4">
                         <li class="flex items-center gap-3 text-sm">
-                            <i class="fa-solid fa-phone text-blue-500"></i>
+                            <?php echo icon('phone', 'w-4 h-4 text-blue-500 inline-block'); ?>
                             <span dir="ltr"><?php echo e($t['topbar']['phone']); ?></span>
                         </li>
                         <li class="flex items-center gap-3 text-sm">
-                            <i class="fa-solid fa-envelope text-blue-500"></i>
+                            <?php echo icon('envelope', 'w-4 h-4 text-blue-500 inline-block'); ?>
                             <span dir="ltr"><?php echo e($t['topbar']['email']); ?></span>
                         </li>
                     </ul>
