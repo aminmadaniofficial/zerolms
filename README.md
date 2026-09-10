@@ -81,3 +81,5 @@ docker exec -i mysql_db_container mysql -u zerolms -p1597538264Mm school_online 
 
 ---
 **طراحی و توسعه توسط محمدامین مدنی محمدی | دبیرستان استعدادهای درخشان شهید باهنر ۳ کرج**
+
+<!-- Security scan triggered at 2026-09-10 04:05:48 -->
