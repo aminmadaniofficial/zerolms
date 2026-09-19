@@ -31,7 +31,7 @@ CREATE TABLE `aichats` (
   PRIMARY KEY (`id`),
   KEY `idx_user_id` (`user_id`),
   CONSTRAINT `aichats_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=36 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=39 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -41,11 +41,10 @@ CREATE TABLE `aichats` (
 LOCK TABLES `aichats` WRITE;
 /*!40000 ALTER TABLE `aichats` DISABLE KEYS */;
 INSERT INTO `aichats` VALUES
-(23,11,'سلام...','2026-06-10 08:25:17'),
 (32,1,'سلام...','2026-07-21 16:27:16'),
-(33,11,'سلام...','2026-07-21 17:38:59'),
 (34,1,'سلام...','2026-07-21 18:05:48'),
-(35,1,'سلام...','2026-07-22 06:03:08');
+(35,1,'سلام...','2026-07-22 06:03:08'),
+(38,11,'سلام...','2026-09-09 05:13:46');
 /*!40000 ALTER TABLE `aichats` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -246,7 +245,7 @@ CREATE TABLE `classcourses` (
   PRIMARY KEY (`id`),
   KEY `classcourses_ibfk_1` (`class_id`),
   CONSTRAINT `classcourses_ibfk_1` FOREIGN KEY (`class_id`) REFERENCES `classes` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10000 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -338,7 +337,7 @@ CREATE TABLE `exam_questions` (
   PRIMARY KEY (`id`),
   KEY `exam_id` (`exam_id`),
   CONSTRAINT `exam_questions_ibfk_1` FOREIGN KEY (`exam_id`) REFERENCES `exams` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -349,7 +348,11 @@ LOCK TABLES `exam_questions` WRITE;
 /*!40000 ALTER TABLE `exam_questions` DISABLE KEYS */;
 INSERT INTO `exam_questions` VALUES
 (18,5,1,'2'),
-(19,5,2,'3');
+(19,5,2,'3'),
+(20,6,1,'1'),
+(21,6,2,'3'),
+(22,6,3,'2'),
+(23,6,4,'4');
 /*!40000 ALTER TABLE `exam_questions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -408,7 +411,7 @@ CREATE TABLE `exams` (
   KEY `teacher_id` (`teacher_id`),
   CONSTRAINT `exams_ibfk_1` FOREIGN KEY (`class_course_id`) REFERENCES `classcourses` (`id`) ON DELETE CASCADE,
   CONSTRAINT `exams_ibfk_2` FOREIGN KEY (`teacher_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -418,7 +421,8 @@ CREATE TABLE `exams` (
 LOCK TABLES `exams` WRITE;
 /*!40000 ALTER TABLE `exams` DISABLE KEYS */;
 INSERT INTO `exams` VALUES
-(5,12,1,'ازمون اول',2,'../../Uploads/exams/68e0cc6a2416e_Ababil-2-drone-FA-2048x1448.jpg',2,'2025-10-04 10:57:38','2025-10-05 10:57:00');
+(5,12,1,'ازمون اول',2,'../../Uploads/exams/6928807ea6019_Coding1.png',2,'2025-10-04 10:57:38','2027-12-31 23:59:59'),
+(6,12,47,'آزمون تعاملی برنامه‌نویسی و وب (دمو خوارزمی)',4,'../../Uploads/exams/6928807ea6019_Coding1.png',20,'2026-09-08 21:28:14','2027-12-31 23:59:59');
 /*!40000 ALTER TABLE `exams` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -466,7 +470,7 @@ CREATE TABLE `feedback` (
   `comment` text DEFAULT NULL,
   `created_at` datetime NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -497,9 +501,9 @@ CREATE TABLE `form_responses` (
   PRIMARY KEY (`id`),
   KEY `form_id` (`form_id`),
   KEY `submitted_by` (`submitted_by`),
-  CONSTRAINT `form_responses_ibfk_1` FOREIGN KEY (`form_id`) REFERENCES `forms` (`id`),
-  CONSTRAINT `form_responses_ibfk_2` FOREIGN KEY (`submitted_by`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  CONSTRAINT `form_responses_ibfk_1` FOREIGN KEY (`form_id`) REFERENCES `forms` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `form_responses_ibfk_2` FOREIGN KEY (`submitted_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -610,7 +614,7 @@ CREATE TABLE `homework_submissions` (
 LOCK TABLES `homework_submissions` WRITE;
 /*!40000 ALTER TABLE `homework_submissions` DISABLE KEYS */;
 INSERT INTO `homework_submissions` VALUES
-(3,3,11,'../../Uploads/homework/students/68e0cbe7d9c28_تحقیق درمورد پهپاد ها.pptx','نتونستم ',20,'عالی','2025-10-04 10:55:27');
+(3,3,11,'../../Uploads/homework/students/68c6784db935f_yazdani.png','نتونستم ',20,'عالی','2025-10-04 10:55:27');
 /*!40000 ALTER TABLE `homework_submissions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -645,7 +649,7 @@ CREATE TABLE `homeworks` (
 LOCK TABLES `homeworks` WRITE;
 /*!40000 ALTER TABLE `homeworks` DISABLE KEYS */;
 INSERT INTO `homeworks` VALUES
-(3,12,1,'تلکیف تست','عکس تمرین را ارسال کنید ','../../Uploads/homework/teachers/68e0cb2b846bf_تحقیق درمورد پهپاد ها.pptx','2025-10-05 10:52:00','2025-10-04 10:52:19');
+(3,12,1,'تلکیف تست','عکس تمرین را ارسال کنید ','../../Uploads/homework/teachers/69971a1e784a3_Gemini_Generated_Image_bqzo3mbqzo3mbqzo.png','2027-12-31 23:59:59','2025-10-04 10:52:19');
 /*!40000 ALTER TABLE `homeworks` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -666,7 +670,7 @@ CREATE TABLE `logs` (
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`),
   KEY `logs_ibfk_2_idx` (`target_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=502 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=546 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1002,7 +1006,51 @@ INSERT INTO `logs` VALUES
 (498,1,'login_success','login',-1,'2026-07-31 18:00:05'),
 (499,1,'logout','logout',-1,'2026-07-31 18:23:30'),
 (500,1,'login_success','login',-1,'2026-07-31 18:23:40'),
-(501,1,'ثبت امتیاز 5 ستاره به سایت','بازخورد',-1,'2026-07-31 18:33:00');
+(501,1,'ثبت امتیاز 5 ستاره به سایت','بازخورد',-1,'2026-07-31 18:33:00'),
+(502,-1,'login_failed_empty','login',-1,'2026-09-08 16:51:16'),
+(503,1,'خطای درخواست نامعتبر','گالری',-1,'2026-09-08 21:17:21'),
+(504,47,'خطای درخواست نامعتبر','گالری',-1,'2026-09-08 21:17:22'),
+(505,-1,'خطای دسترسی غیرمجاز','گالری',-1,'2026-09-08 21:17:23'),
+(506,11,'login_success','general',-1,'2026-09-08 22:31:48'),
+(507,1,'login_failed','general',-1,'2026-09-08 22:45:37'),
+(508,1,'login_success','general',-1,'2026-09-08 22:50:12'),
+(509,47,'login_success','general',-1,'2026-09-08 22:50:14'),
+(510,11,'login_success','general',-1,'2026-09-08 22:50:15'),
+(511,11,'login_failed','general',-1,'2026-09-09 05:04:11'),
+(512,11,'login_failed','general',-1,'2026-09-09 05:04:13'),
+(513,11,'login_success','general',-1,'2026-09-09 05:04:21'),
+(514,11,'logout','general',-1,'2026-09-09 05:10:06'),
+(515,11,'login_failed','general',-1,'2026-09-09 05:10:24'),
+(516,11,'login_success','general',-1,'2026-09-09 05:10:34'),
+(517,1,'login_success','general',-1,'2026-09-09 05:12:29'),
+(518,47,'login_success','general',-1,'2026-09-09 05:12:31'),
+(519,11,'login_success','general',-1,'2026-09-09 05:12:34'),
+(520,11,'logout','general',-1,'2026-09-09 05:14:11'),
+(521,1,'login_failed','general',-1,'2026-09-09 05:14:56'),
+(522,11,'login_success','general',-1,'2026-09-09 05:19:06'),
+(523,1,'login_success','general',-1,'2026-09-09 05:43:36'),
+(524,47,'login_success','general',-1,'2026-09-09 05:43:36'),
+(525,11,'login_success','general',-1,'2026-09-09 05:43:36'),
+(526,1,'login_success','general',-1,'2026-09-09 05:49:59'),
+(527,47,'login_success','general',-1,'2026-09-09 05:50:00'),
+(528,11,'login_success','general',-1,'2026-09-09 05:50:00'),
+(529,11,'logout','general',-1,'2026-09-09 05:51:51'),
+(530,11,'login_success','general',-1,'2026-09-09 05:51:58'),
+(531,11,'login_success','general',-1,'2026-09-09 06:02:25'),
+(532,11,'ثبت امتیاز 5 ستاره به سایت','بازخورد',-1,'2026-09-09 06:02:25'),
+(533,11,'logout','general',-1,'2026-09-09 06:02:25'),
+(534,11,'login_success','general',-1,'2026-09-09 06:02:25'),
+(535,11,'logout','general',-1,'2026-09-09 06:03:32'),
+(536,11,'login_success','general',-1,'2026-09-09 06:03:35'),
+(537,11,'logout','general',-1,'2026-09-09 06:19:54'),
+(538,1,'login_success','general',-1,'2026-09-09 06:20:00'),
+(539,1,'logout','general',-1,'2026-09-09 06:20:05'),
+(540,47,'login_success','general',-1,'2026-09-09 06:20:35'),
+(541,47,'logout','general',-1,'2026-09-09 06:20:44'),
+(542,11,'login_success','general',-1,'2026-09-09 06:22:08'),
+(543,47,'login_success','general',-1,'2026-09-09 06:53:20'),
+(544,47,'logout','general',-1,'2026-09-09 06:53:25'),
+(545,1,'login_success','general',-1,'2026-09-09 08:57:47');
 /*!40000 ALTER TABLE `logs` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1178,9 +1226,9 @@ CREATE TABLE `report_cards` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `student_id` (`student_id`,`class_course_id`,`academic_year`),
   KEY `class_course_id` (`class_course_id`),
-  CONSTRAINT `report_cards_ibfk_1` FOREIGN KEY (`student_id`) REFERENCES `users` (`id`),
-  CONSTRAINT `report_cards_ibfk_2` FOREIGN KEY (`class_course_id`) REFERENCES `classcourses` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  CONSTRAINT `report_cards_ibfk_1` FOREIGN KEY (`student_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `report_cards_ibfk_2` FOREIGN KEY (`class_course_id`) REFERENCES `classcourses` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1379,11 +1427,12 @@ CREATE TABLE `user_badges` (
   `badge_id` int(11) NOT NULL,
   `awarded_at` datetime NOT NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_user_badge` (`user_id`,`badge_id`),
   KEY `user_id` (`user_id`),
   KEY `badge_id` (`badge_id`),
-  CONSTRAINT `user_badges_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
-  CONSTRAINT `user_badges_ibfk_2` FOREIGN KEY (`badge_id`) REFERENCES `badges` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  CONSTRAINT `user_badges_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `user_badges_ibfk_2` FOREIGN KEY (`badge_id`) REFERENCES `badges` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1410,9 +1459,10 @@ CREATE TABLE `user_points` (
   `points` int(11) DEFAULT 0,
   `created_at` datetime NOT NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_user_points` (`user_id`),
   KEY `user_id` (`user_id`),
-  CONSTRAINT `user_points_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  CONSTRAINT `user_points_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1450,7 +1500,7 @@ CREATE TABLE `users` (
   UNIQUE KEY `username` (`username`),
   KEY `class_id` (`class_id`),
   CONSTRAINT `users_ibfk_1` FOREIGN KEY (`class_id`) REFERENCES `classes` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=74 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10000 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1460,9 +1510,9 @@ CREATE TABLE `users` (
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
 INSERT INTO `users` VALUES
-(-1,'!کاربر ثبت نام نشده',NULL,'notregistereduser','0','student',NULL,NULL,NULL,'2025-09-11 19:54:16',NULL,NULL),
-(1,'دبیرستان باهنر 3',NULL,'bahonar','$2y$10$HSLRHXj16IklWtUtv6CHIelzU0daSlGLWKlQGvpW6/g2Gz2hRzEqO','admin','',NULL,NULL,'2025-09-11 19:13:23','2026-05-19 23:11:00','43926726fc65c6366b746bedeff1803f'),
-(11,'محمدامین مدنی محمدی',NULL,'aminmadani','$2y$10$4tne8i4TwASYybaB8PZP2euswECdwXN1QroOqJI/GFQ1DNnzgWnaq','student','0315324457',1,NULL,'2025-09-11 19:23:06','2026-07-29 19:36:41','13b725c599f803e1b7bbcf53d008bbe9'),
+(-1,'!کاربر ثبت نام نشده',NULL,'notregistereduser','0','student',NULL,NULL,NULL,'2025-09-11 19:54:16','2026-09-08 21:17:22','47df4bd40da80db53255e426fd1de2ee'),
+(1,'دبیرستان باهنر 3',NULL,'bahonar','$2y$10$sF.Sy4ThaP2NWGOsnZ9JPunLzM2VSNVG9oQ57LEv3WuKrnb6uRor6','admin','',NULL,NULL,'2025-09-11 19:13:23','2026-09-08 22:49:35','43926726fc65c6366b746bedeff1803f'),
+(11,'محمدامین مدنی محمدی',NULL,'aminmadani','$2y$10$sF.Sy4ThaP2NWGOsnZ9JPunLzM2VSNVG9oQ57LEv3WuKrnb6uRor6','student','0315324457',1,NULL,'2025-09-11 19:23:06','2026-09-08 22:49:35','13b725c599f803e1b7bbcf53d008bbe9'),
 (38,'محمدرضا امیدی','Mohammadreza Omidi','mromidi','$2y$10$IAeU8u/3eySSH1kz3eyefOZdwslfKJxPgKhzLFNw0v9Rd3ZnPN1Wu','admin','',NULL,NULL,'2026-06-06 14:12:58','2026-06-21 09:08:47',NULL),
 (40,'رضا جاویدنسب','Reza Javidnasab','mrjavidnasab','$2y$10$Q4jiUVhsi1UCIE3oTCHzG.N3.ei/VMnRaR265YeRzRF7V09TF6nPO','admin','',NULL,NULL,'2026-06-06 14:26:31','2026-06-21 09:01:15','78728abc6a76a2604a9bbf9ff8ed0ebc'),
 (41,'محمد اجلالی خلف','Mohammad Ejlali Khalaf','M','$2y$10$3g33Dhx1.sf770yr7gM9JODA.21wv6D8xfRq1.9Mwps2axFcIS1p.','admin','',NULL,NULL,'2026-06-06 14:31:03','2026-06-21 09:01:15',NULL),
@@ -1470,7 +1520,7 @@ INSERT INTO `users` VALUES
 (43,'سیدحسین قریشی','Seyed Hossein Ghoreishi','mrghoreishi','$2y$10$2KxBV/WQsPFY/ejQxFXO.O3QDeniWrFxK1EHCvGJKVav73m65Cg..','admin','',NULL,NULL,'2026-06-06 14:33:57','2026-06-21 09:01:15',NULL),
 (44,'مهدی کشاورز رضائی','Mehdi Keshavarz Rezaei','mrkeshavarz','$2y$10$whfn01bQ1Ba5wnLLpzrKmOAj4NubUo/80Ph6vd83llodrO2smQjpm','admin','',NULL,NULL,'2026-06-06 14:35:00','2026-06-21 09:01:15',NULL),
 (45,'ابراهیم محمدعلی خانی','Ebrahim Mohammadalikhani','emohammadi','$2y$10$HSLRHXj16IklWtUtv6CHIelzU0daSlGLWKlQGvpW6/g2Gz2hRzEqO','admin',NULL,NULL,NULL,'2026-06-21 09:01:36',NULL,NULL),
-(47,'حیدر سمیر کرم','Heydar Samir Karam','hsamir','$2y$10$HSLRHXj16IklWtUtv6CHIelzU0daSlGLWKlQGvpW6/g2Gz2hRzEqO','teacher',NULL,NULL,NULL,'2026-06-21 09:01:36',NULL,NULL),
+(47,'حیدر سمیر کرم','Heydar Samir Karam','hsamir','$2y$10$sF.Sy4ThaP2NWGOsnZ9JPunLzM2VSNVG9oQ57LEv3WuKrnb6uRor6','teacher',NULL,NULL,NULL,'2026-06-21 09:01:36','2026-09-08 22:49:35','027c3decb5899e52342ba709a7218d6e'),
 (48,'مصطفی فلاح اصغرزاده','Mostafa Fallah Asgharzadeh','mfallah','$2y$10$HSLRHXj16IklWtUtv6CHIelzU0daSlGLWKlQGvpW6/g2Gz2hRzEqO','teacher',NULL,NULL,NULL,'2026-06-21 09:01:36',NULL,NULL),
 (49,'محمدرضا مشهدی','Mohammadreza Mashhadi','mmashhadi','$2y$10$HSLRHXj16IklWtUtv6CHIelzU0daSlGLWKlQGvpW6/g2Gz2hRzEqO','teacher',NULL,NULL,NULL,'2026-06-21 09:01:36',NULL,NULL),
 (50,'حبیب رمضانخانی','Habib Ramezankhani','hramezankhani','$2y$10$HSLRHXj16IklWtUtv6CHIelzU0daSlGLWKlQGvpW6/g2Gz2hRzEqO','teacher',NULL,NULL,NULL,'2026-06-21 09:01:36',NULL,NULL),
@@ -1509,4 +1559,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-31 18:43:55
+-- Dump completed on 2026-09-19  7:54:03
