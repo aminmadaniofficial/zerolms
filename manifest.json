@@ -1,15 +1,88 @@
 {
-  "name": "وبسایت باهنر 3",
-  "short_name": "با هنر 3",
-  "description": "سیستم مدیریت یادگیری مدرسه با هنر 3 ، برنامه نویسی شده توسط محمدامین مدنی محمدی",
-  "start_url": "/",
+  "id": "/",
+  "name": "سامانه مدیریت یادگیری باهنر ۳",
+  "short_name": "باهنر ۳",
+  "description": "سیستم مدیریت یادگیری و پورتال آموزشی دبیرستان شهید باهنر ۳ کرج",
+  "start_url": "/?source=pwa",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#1e3c72",
-  "theme_color": "#2a5298",
+  "theme_color": "#1e3c72",
+  "lang": "fa",
+  "dir": "rtl",
+  "categories": [
+    "education",
+    "productivity"
+  ],
   "icons": [
     {
+      "src": "/images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/images/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
       "src": "/images/logo.svg",
-      "type": "image/png"
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "ورود به سامانه",
+      "short_name": "ورود",
+      "description": "ورود به پنل کاربری دانش‌آموزان، اساتید و مدیریت",
+      "url": "/login/",
+      "icons": [
+        {
+          "src": "/images/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "وبلاگ و اخبار",
+      "short_name": "اخبار",
+      "description": "مشاهده آخرین اطلاعیه‌ها و مقالات آموزشی",
+      "url": "/blog/",
+      "icons": [
+        {
+          "src": "/images/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "کادر اساتید",
+      "short_name": "اساتید",
+      "description": "معرفی دبیران و کادر آموزشی دبیرستان",
+      "url": "/teachers/",
+      "icons": [
+        {
+          "src": "/images/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }
