@@ -1,4 +1,12 @@
 # 🚀 سامانه جامع مدیریت یادگیری زیرو (ZeroLMS)
+
+[![CI/CD Tests](https://github.com/aminmadaniofficial/zerolms/actions/workflows/ci.yml/badge.svg)](https://github.com/aminmadaniofficial/zerolms/actions/workflows/ci.yml)
+![PHP Version](https://img.shields.io/badge/PHP-8.2-777BB4?style=flat&logo=php&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat&logo=docker&logoColor=white)
+![MariaDB](https://img.shields.io/badge/Database-MariaDB_10.11-003545?style=flat&logo=mariadb&logoColor=white)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![Platform](https://img.shields.io/badge/Platform-Web%20%7C%20IoT%20%7C%20Extension-blue)
+
 > **مستندات رسمی اثر جهت ارائه در مرحله کشوری دوازدهمین دوره جشنواره نوجوان خوارزمی**
 > **طراح و توسعه‌دهنده:** محمدامین مدنی محمدی | **مجموعه آموزشی:** دبیرستان استعدادهای درخشان شهید باهنر ۳ کرج
 
