@@ -1,8 +1,31 @@
-vendor/
-zerolms.zip
+# Environment & Secrets
 .env
-.vicode/
-kharazmi/
+.env.local
+.env.*.local
+*.pem
+*.key
+*.crt
+
+# Dependencies
+vendor/
 node_modules/
+
+# Archives & Backups
+*.zip
+*.tar.gz
+*.rar
 backupdatabase2.sql
 backup_pre_presentation.sql
+backup_*.sql
+
+# Editor & OS Files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Temporary directories
+kharazmi/
+/tmp/

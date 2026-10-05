@@ -1,49 +1,16 @@
-name: Deploy ZeroLMS to Bahonar Karaj Server (Disabled)
-
 # ==============================================================================
-# DEPLOY WORKFLOW TEMPORARILY DISABLED
-# This workflow will NOT run automatically on push or pull_request.
-# To re-enable, change 'on' trigger back to push and set 'if: true' below.
+# DEPLOY WORKFLOW COMPLETELY DISABLED
+# To re-enable in the future, uncomment this configuration and configure GitHub Secrets.
 # ==============================================================================
-
-'on':
-  workflow_dispatch:
-
-jobs:
-  deploy:
-    name: Deployment to Bahonar Karaj Server
-    runs-on: ubuntu-latest
-    if: false # Explicitly disabled
-
-    steps:
-      - name: Deployment Notice
-        run: echo "Deployment via SSH is currently disabled."
-
-      # - name: Checkout Code
-      #   uses: actions/checkout@v4
-
-      # - name: Executing remote SSH commands to deploy
-      #   uses: appleboy/ssh-action@master
-      #   with:
-      #     host: ${{ secrets.SERVER_IP }}
-      #     username: ${{ secrets.SERVER_USER }}
-      #     key: ${{ secrets.SERVER_SSH_KEY }}
-      #     port: 3939 
-      #     script: |
-      #       cd /var/www/bahonarkaraj.ir/html
-      #       git config --global --add safe.directory /var/www/bahonarkaraj.ir/html
-      #       if [ ! -d ".git" ]; then
-      #         git init
-      #         git remote add origin git@github.com:aminmadaniofficial/zerolms.git
-      #       else
-      #         git remote set-url origin git@github.com:aminmadaniofficial/zerolms.git
-      #       fi
-      #       git fetch origin
-      #       git reset --hard origin/main
-      #       if command -v docker-compose &> /dev/null; then
-      #         docker-compose down || true
-      #         docker-compose up -d --build
-      #       else
-      #         docker compose down || true
-      #         docker compose up -d --build
-      #       fi
+# name: Deploy ZeroLMS to Server
+# 
+# on:
+#   workflow_dispatch:
+# 
+# jobs:
+#   deploy:
+#     name: Deployment to Server
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Disabled
+#         run: echo "Deployment workflow is currently disabled."

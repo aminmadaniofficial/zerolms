@@ -25,7 +25,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $user_id = $_SESSION['user_id'];
-$api_key = getenv('OPENROUTER_API_KEY') ?: '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'; 
+$api_key = getenv('OPENROUTER_API_KEY') ?: ''; 
 
 /**
  * Create a new AI chat thread session in database.
@@ -262,6 +262,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($message)) {
         echo "data: " . json_encode(['error' => 'پیام خالی است.']) . "\n\n";
+        flush();
+        exit;
+    }
+
+    if (empty($api_key)) {
+        echo "data: " . json_encode(['choices' => [['delta' => ['content' => 'کلید هوش مصنوعی (OPENROUTER_API_KEY) در سرور تنظیم نشده است. لطفاً متغیر محیطی مربوطه را پیکربندی نمایید.']]]]) . "\n\n";
+        echo "data: [DONE]\n\n";
         flush();
         exit;
     }

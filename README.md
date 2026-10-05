@@ -56,10 +56,13 @@
 git clone https://github.com/aminmadaniofficial/zerolms.git
 cd zerolms
 
-# ۲. بالا آوردن کانتینرهای داکر
+# ۲. ایجاد فایل متغیرهای محیطی
+cp .env.example .env
+
+# ۳. بالا آوردن کانتینرهای داکر
 docker compose up -d
 
-# ۳. وارد کردن دیتابیس اولیه
+# ۴. ایمپورت پایگاه داده اولیه
 docker exec -i mysql_db_container mysql -u zerolms -p1597538264Mm school_online < backupdatabase.sql
 ```
 

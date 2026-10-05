@@ -1,9 +1,9 @@
 <?php
 
-$host = 'db';
-$db   = 'school_online'; 
-$user = 'zerolms';          
-$pass = '1597538264Mm';              
+$host = getenv('DB_HOST') ?: 'db';
+$db   = getenv('DB_NAME') ?: 'school_online'; 
+$user = getenv('DB_USER') ?: 'zerolms';          
+$pass = getenv('DB_PASS') ?: '1597538264Mm';              
 $charset = 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
@@ -16,5 +16,6 @@ $options = [
 try {
      $pdo = new PDO($dsn, $user, $pass, $options);
 } catch (\PDOException $e) {
-     throw new \PDOException($e->getMessage(), (int)$e->getCode());
+     error_log("Database Connection Error: " . $e->getMessage());
+     throw new \PDOException("خطا در برقراری ارتباط با پایگاه داده. لطفاً پیکربندی سرور را بررسی فرمایید.", (int)$e->getCode());
 }
